@@ -30,6 +30,7 @@
             <a href="simulador.html" class="btn btn-sm btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: #dc2626; color: white;">🏭 Simulador Banda 2D</a>
             <a href="generador.html" class="btn btn-sm btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: #f59e0b; color: #78350f;">🎨 Generador Etiquetas</a>
             <a href="plantilla_estandar.html" class="btn btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: #334155; color: white;">📐 Plantillas</a>
+            <button id="btnInstallApp" class="btn btn-sm" style="display: inline-flex; align-items: center; gap: 4px; background: #059669; color: white; font-weight: bold; cursor: pointer; border: none;">📲 Descargar App</button>
             <div class="system-status">
                 <div class="live-dot"></div>
                 <span>SISTEMA EN LÍNEA</span>
@@ -250,27 +251,58 @@
 
     </main>
 
-    <!-- Scripts with Cache-Busting Version Query -->
-    <script src="js/audio.js?v=20261004_02"></script>
-    <script src="js/vision.js?v=20261004_02"></script>
-    <script src="js/samples.js?v=20261004_02"></script>
-    <script src="js/ocr.js?v=20261004_02"></script>
-    <script src="js/app.js?v=20261004_02"></script>
+    <!-- Modal: Cómo Descargar e Instalar la App PWA -->
+    <div id="installModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 9999; justify-content: center; align-items: center; padding: 16px;">
+        <div style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; max-width: 480px; width: 100%; padding: 22px; color: #f8fafc; box-shadow: 0 10px 30px rgba(0,0,0,0.8); position: relative;">
+            <button id="btnCloseInstallModal" style="position: absolute; top: 12px; right: 14px; background: transparent; border: none; color: #94a3b8; font-size: 20px; font-weight: bold; cursor: pointer;">✕</button>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                <span style="font-size: 28px;">📲</span>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.15rem; color: #38bdf8;">Descargar e Instalar Kimby QC</h3>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Aplicación Web Progresiva Oficial (PWA)</span>
+                </div>
+            </div>
+            <p style="font-size: 0.84rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 14px;">
+                Puedes instalar esta app directamente en tu teléfono móvil o computadora para usarla en pantalla completa, con acceso a cámara rápido y sin barras del navegador:
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.82rem;">
+                <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <strong style="color: #10b981;">📱 En Android (Chrome / Edge):</strong><br>
+                    Toca el botón <strong>"Instalar Ahora"</strong> abajo, o abre el menú de Chrome (los <strong>tres puntos ⋮</strong> arriba a la derecha) y pulsa <strong>"Instalar aplicación"</strong> o <strong>"Agregar a la pantalla principal"</strong>.
+                </div>
+                <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border-left: 4px solid #38bdf8;">
+                    <strong style="color: #38bdf8;">🍏 En iPhone / iPad (Safari):</strong><br>
+                    Toca el botón <strong>Compartir (icono cuadrado con flecha ⎋)</strong> en la barra de Safari y selecciona <strong>"Agregar al inicio (+)"</strong>.
+                </div>
+                <div style="background: #0f172a; padding: 10px 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <strong style="color: #f59e0b;">💻 En PC (Chrome / Edge):</strong><br>
+                    Toca el ícono de <strong>Instalar (computadora con flecha ⬇)</strong> a la derecha en la barra de direcciones de la web.
+                </div>
+            </div>
+            <div style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button id="btnTriggerInstallPrompt" class="btn btn-sm" style="background: #059669; color: white; font-weight: bold; cursor: pointer;">📲 Instalar Ahora</button>
+                <button id="btnDismissModal" class="btn btn-sm btn-secondary" style="cursor: pointer;">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Force Clear Stale Cache & Refresh Service Worker -->
+    <!-- Scripts with Cache-Busting Version Query -->
+    <script src="js/audio.js?v=20261004_03"></script>
+    <script src="js/vision.js?v=20261004_03"></script>
+    <script src="js/samples.js?v=20261004_03"></script>
+    <script src="js/ocr.js?v=20261004_03"></script>
+    <script src="js/app.js?v=20261004_03"></script>
+
+    <!-- PWA Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(regs => {
-                for (let reg of regs) {
-                    reg.update();
-                }
-            });
-        }
-        if ('caches' in window) {
-            caches.keys().then(keys => {
-                keys.forEach(k => {
-                    if (k === 'kimby-qc-v1') caches.delete(k);
-                });
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => {
+                        console.log('PWA ServiceWorker registrado con éxito:', reg.scope);
+                        reg.update();
+                    })
+                    .catch(err => console.warn('Aviso ServiceWorker:', err));
             });
         }
     </script>

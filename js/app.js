@@ -455,6 +455,63 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 3000);
     }
 
+    // -------------------------------------------------------------
+    // PWA Installation Controller
+    // -------------------------------------------------------------
+    let deferredPrompt = null;
+    const btnInstallApp = document.getElementById('btnInstallApp');
+    const installModal = document.getElementById('installModal');
+    const btnCloseInstallModal = document.getElementById('btnCloseInstallModal');
+    const btnDismissModal = document.getElementById('btnDismissModal');
+    const btnTriggerInstallPrompt = document.getElementById('btnTriggerInstallPrompt');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('beforeinstallprompt capturado con éxito!');
+        if (btnInstallApp) {
+            btnInstallApp.style.display = 'inline-flex';
+            btnInstallApp.style.boxShadow = '0 0 10px #10b981';
+        }
+    });
+
+    function openInstallModal() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('Usuario aceptó instalar la PWA');
+                    showToast('¡Descargando e instalando Kimby QC!');
+                }
+                deferredPrompt = null;
+            });
+        } else {
+            if (installModal) installModal.style.display = 'flex';
+        }
+    }
+
+    function closeInstallModal() {
+        if (installModal) installModal.style.display = 'none';
+    }
+
+    if (btnInstallApp) btnInstallApp.addEventListener('click', openInstallModal);
+    if (btnCloseInstallModal) btnCloseInstallModal.addEventListener('click', closeInstallModal);
+    if (btnDismissModal) btnDismissModal.addEventListener('click', closeInstallModal);
+    if (btnTriggerInstallPrompt) {
+        btnTriggerInstallPrompt.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then(() => {
+                    deferredPrompt = null;
+                    closeInstallModal();
+                });
+            } else {
+                closeInstallModal();
+                alert('Para instalar:\n\n1. En Android Chrome: pulsa el menú de 3 puntos (⋮) arriba a la derecha y selecciona "Instalar aplicación" o "Agregar a la pantalla principal".\n\n2. En iPhone Safari: pulsa el icono Compartir (⎋) y elige "Agregar al inicio".');
+            }
+        });
+    }
+
     // Auto-load first sample on start so user sees interface populated!
     setTimeout(() => {
         loadSyntheticSample(samples[0]);
