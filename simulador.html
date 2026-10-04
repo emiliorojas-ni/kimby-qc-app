@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#dc2626">
+    <title>Embutidos Kimby - Simulador 2D de Banda Transportadora & OCR</title>
+    <link rel="stylesheet" href="css/style.css?v=20261004_01">
+    <style>
+        /* Specific Styles for 2D Digital Twin Simulation */
+        .sim-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .canvas-card {
+            background: #090d16;
+            border: 2px solid #1e3a5f;
+            border-radius: 14px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .canvas-toolbar {
+            background: #111827;
+            padding: 10px 16px;
+            border-bottom: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .canvas-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--cyan-accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sim-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            background: #070a10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #conveyorCanvas {
+            width: 100%;
+            height: auto;
+            max-height: 440px;
+            display: block;
+            background: #080c14;
+        }
+
+        /* Flash overlay inside simulation */
+        .camera-flash-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255, 255, 255, 0.85);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.08s ease-out;
+            z-index: 20;
+        }
+
+        .camera-flash-overlay.active {
+            opacity: 1;
+        }
+
+        /* Preset Injection Grid */
+        .injector-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .btn-inject {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 10px 12px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+
+        .btn-inject:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            border-color: #64748b;
+        }
+
+        .btn-inject.pass {
+            border-left: 4px solid var(--pass-green);
+        }
+
+        .btn-inject.pass:hover {
+            border-color: var(--pass-green);
+            background: #064e3b;
+        }
+
+        .btn-inject.reject {
+            border-left: 4px solid var(--kimby-red);
+        }
+
+        .btn-inject.reject:hover {
+            border-color: var(--kimby-red);
+            background: #450a0a;
+        }
+
+        .btn-inject strong {
+            font-size: 0.88rem;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-inject span {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        /* Two Column Layout for Telemetry and PiP HUD */
+        .sim-bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .sim-bottom-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* PiP Camera Inspection Screen */
+        .pip-card {
+            background: #111827;
+            border: 1px solid #1e3a5f;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .pip-header {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--kimby-yellow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 6px;
+        }
+
+        .pip-frames-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .pip-frame-box {
+            background: #0a0f18;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 6px;
+            text-align: center;
+        }
+
+        .pip-frame-box label {
+            font-size: 0.7rem;
+            color: #94a3b8;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .pip-frame-box canvas {
+            width: 100%;
+            height: auto;
+            max-height: 80px;
+            border-radius: 4px;
+            background: #000;
+            display: block;
+        }
+
+        /* Readout Badge Pills */
+        .readout-pill {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .readout-pill .val {
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .readout-pill.highlight-red .val {
+            color: #ef4444;
+        }
+
+        .readout-pill.highlight-green .val {
+            color: #10b981;
+        }
+
+        /* Station Markers */
+        .station-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .badge-sensor { background: #0369a1; color: white; }
+        .badge-camera { background: #7c2d12; color: #fed7aa; }
+        .badge-piston { background: #831843; color: #fbcfe8; }
+        .badge-outfeed { background: #064e3b; color: #a7f3d0; }
+    </style>
+</head>
+<body>
+
+    <!-- Full Screen Red Alert Strobe on Rejection -->
+    <div id="strobeAlert"></div>
+
+    <!-- Navigation Header -->
+    <header class="app-header">
+        <div class="brand-wrapper">
+            <div class="brand-icon">🏭</div>
+            <div class="brand-text">
+                <h1>EMBUTIDOS KIMBY</h1>
+                <span>Gemelo Digital 2D — Línea 02 de Empaque (Inspección OCR & Pistón FESTO)</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="index.html" class="btn btn-sm" style="text-decoration: none; background: #0284c7; color: white; font-weight: bold;">📹 App SCADA Principal</a>
+            <a href="generador.html" class="btn btn-sm" style="text-decoration: none; background: #f59e0b; color: #78350f; font-weight: bold;">🎨 Generador Etiquetas</a>
+            <a href="plantilla_estandar.html" class="btn btn-sm" style="text-decoration: none; background: #334155; color: white;">📐 Plantillas</a>
+            <div class="system-status">
+                <div class="live-dot"></div>
+                <span id="headerStatusText">LÍNEA EN OPERACIÓN</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="sim-container">
+
+        <!-- Top Status Banner (Identical to SCADA App) -->
+        <div id="statusBanner" class="status-banner idle" style="margin-bottom: 0;">
+            <div id="statusIcon" class="status-icon">⚙</div>
+            <div class="status-details">
+                <div id="statusTitle" class="status-title">LÍNEA DE EMPAQUE EN ESPERA</div>
+                <div id="statusSubtitle" class="status-subtitle">Haga clic en 'Iniciar Banda' o inyecte una salchicha de prueba para comenzar la simulación interactiva.</div>
+            </div>
+        </div>
+
+        <!-- Upper Canvas Card: The 2D Simulation Viewport -->
+        <div class="canvas-card">
+            <div class="canvas-toolbar">
+                <div class="canvas-title">
+                    <span>🔄</span> Animación Cinemática de la Cinta Transportadora
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <span class="station-badge badge-sensor">1. Sensor PNP (PE-01)</span>
+                    <span class="station-badge badge-camera">2. Cámara Global Shutter</span>
+                    <span class="station-badge badge-piston">3. Pistón FESTO DFM (24V)</span>
+                    <span class="station-badge badge-outfeed">4. Encartonado Conforme</span>
+                </div>
+            </div>
+
+            <!-- Canvas Viewport with Flash Overlay -->
+            <div class="sim-canvas-wrapper">
+                <div id="cameraFlashOverlay" class="camera-flash-overlay"></div>
+                <canvas id="conveyorCanvas" width="1200" height="420"></canvas>
+            </div>
+
+            <!-- Bottom Transport Controls -->
+            <div class="canvas-toolbar" style="border-top: 1px solid #1e293b; border-bottom: none;">
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button id="btnToggleConveyor" class="btn btn-primary btn-sm">⏸ Pausar Banda</button>
+                    <button id="btnResetConveyor" class="btn btn-sm">🔄 Limpiar Banda</button>
+                    <button id="btnSoundToggle" class="btn btn-sm" style="background: #334155; color: #f8fafc;">🔊 Sonido: ON</button>
+                </div>
+
+                <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                        Velocidad de Banda:
+                        <input type="range" id="speedSlider" min="0.4" max="1.6" step="0.1" value="1.2" style="width: 100px;">
+                        <span id="speedVal" style="color: var(--cyan-accent); font-family: var(--font-mono); font-weight: bold;">1.20 m/s</span>
+                    </label>
+
+                    <label style="font-size: 0.8rem; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="chkAutoFeed" checked>
+                        <span>Flujo Continuo (100 ppm)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Defect Injection Panel (For Professor's Interactive Evaluation) -->
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>🧪 Inyector Manual de Casos de Prueba (Para Evaluación del Docente)</span>
+                <span style="font-size: 0.75rem; color: #94a3b8; text-transform: none; font-weight: normal;">Haga clic en cualquiera para colocar un paquete en la banda</span>
+            </div>
+
+            <div class="injector-grid">
+                <button class="btn-inject pass" onclick="spawnTestPackage('ok')">
+                    <strong>🌭 Salchicha Conforme</strong>
+                    <span>Lote KMB nítido, fecha 2026 vigente. Resultado: PASO LIBRE (Verde).</span>
+                </button>
+
+                <button class="btn-inject reject" onclick="spawnTestPackage('pins')">
+                    <strong>⚡ Pines Rotos (Drop-outs)</strong>
+                    <span>Líneas blancas cortan los caracteres. Resultado: PISTÓN EXPULSA.</span>
+                </button>
+
+                <button class="btn-inject reject" onclick="spawnTestPackage('blur')">
+                    <strong>🌫️ Tinta Borrosa / Frotada</strong>
+                    <span>Baja temperatura del cabezal térmico. Resultado: PISTÓN EXPULSA.</span>
+                </button>
+
+                <button class="btn-inject reject" onclick="spawnTestPackage('expired')">
+                    <strong>📅 Fecha Caducada (2023)</strong>
+                    <span>Texto legible pero fecha expirada. Bloqueo sanitario y descarte.</span>
+                </button>
+
+                <button class="btn-inject reject" onclick="spawnTestPackage('wrong_lot')">
+                    <strong>❌ Lote Trunco (Sin 'KMB')</strong>
+                    <span>Longitud < 10 caracteres y sin prefijo. Resultado: PISTÓN EXPULSA.</span>
+                </button>
+
+                <button class="btn-inject reject" onclick="spawnTestPackage('wrinkle')">
+                    <strong>〰️ Arruga & Reflejo de Luz</strong>
+                    <span>Pliegue plástico al vacío satura sensor. Resultado: PISTÓN EXPULSA.</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Telemetry, Pneumatic Actuator HUD, and PiP Vision Analysis -->
+        <div class="sim-bottom-grid">
+
+            <!-- Left: Telemetry KPI Cards & Pneumatic Box -->
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+
+                <!-- Actuator Status Box (FESTO DFM Cylinder) -->
+                <div id="pneumaticArmBox" class="actuator-box idle">
+                    <div class="actuator-title">
+                        <span>ESTADO DEL ACTUADOR DE RECHAZO (CILINDRO NEUMÁTICO FESTO DFM):</span>
+                    </div>
+                    <div id="pneumaticArmStatus" class="actuator-desc">
+                        <strong>ESPERANDO INSPECCIÓN:</strong> El vástago del pistón permanece retraído en Standby (0V DC).
+                    </div>
+                </div>
+
+                <!-- KPI Stats Counters -->
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-title">📊 Telemetría y Contadores de Producción en Tiempo Real</div>
+                    <div class="stats-row" style="grid-template-columns: repeat(4, 1fr);">
+                        <div class="stat-card">
+                            <div class="stat-val" id="statTotal">0</div>
+                            <div class="stat-label">Total Inspeccionados</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-val" id="statPassed" style="color: var(--pass-green);">0</div>
+                            <div class="stat-label">Conformes (Aprobados)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-val" id="statRejected" style="color: var(--kimby-red);">0</div>
+                            <div class="stat-label">Rechazados (Mermas)</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-val" id="statRejectRate" style="color: var(--kimby-yellow);">0.0%</div>
+                            <div class="stat-label">Tasa de Descarte</div>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Cadence Info -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 14px;">
+                        <div class="readout-pill">
+                            <span>Cadencia Nominal:</span>
+                            <span class="val" id="ppmVal">120 ppm</span>
+                        </div>
+                        <div class="readout-pill">
+                            <span>Tiempo de Tránsito (d/v):</span>
+                            <span class="val" id="transitTimeVal">708 ms</span>
+                        </div>
+                        <div class="readout-pill">
+                            <span>Tiempo Respuesta Sistema:</span>
+                            <span class="val" style="color: #10b981;">175 ms (FS = 4.05x)</span>
+                        </div>
+                        <div class="readout-pill">
+                            <span>Presión Neumática FESTO:</span>
+                            <span class="val">6.0 bar (87 PSI)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Log Table -->
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>📋 Bitácora Oficial de Inspección en Línea</span>
+                        <button id="btnExportCSV" class="btn btn-sm" style="background: #0284c7; color: white;">📥 Exportar CSV</button>
+                    </div>
+
+                    <div class="log-table-wrapper" style="max-height: 220px; overflow-y: auto;">
+                        <table class="log-table">
+                            <thead>
+                                <tr>
+                                    <th>Hora</th>
+                                    <th>Paquete #</th>
+                                    <th>Lote Extraído</th>
+                                    <th>Vencimiento</th>
+                                    <th>Confianza</th>
+                                    <th>Veredicto</th>
+                                    <th>Acción Mecánica</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logTableBody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 18px;">
+                                        Iniciando simulación... Los eventos de inspección se registrarán aquí.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Picture-in-Picture Camera & Otsu Analysis HUD -->
+            <div class="pip-card">
+                <div class="pip-header">
+                    <span>📹 FOTOGRAMA CAPTURADO (CAM-01)</span>
+                    <span id="pipTimestamp" style="font-family: var(--font-mono); font-size: 0.75rem; color: #94a3b8;">--:--:--</span>
+                </div>
+
+                <!-- Two Frames: Raw Snapshot vs Binarized Otsu -->
+                <div class="pip-frames-row">
+                    <div class="pip-frame-box">
+                        <label>Captura Estroboscópica</label>
+                        <canvas id="pipRawCanvas" width="300" height="150"></canvas>
+                    </div>
+                    <div class="pip-frame-box">
+                        <label>Binarización Otsu O(L)</label>
+                        <canvas id="pipOtsuCanvas" width="300" height="150"></canvas>
+                    </div>
+                </div>
+
+                <!-- Live OCR Readouts -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="readout-pill" id="pipLotePill">
+                        <span>Lote Detectado:</span>
+                        <span class="val" id="pipLote">EN ESPERA</span>
+                    </div>
+
+                    <div class="readout-pill" id="pipVencPill">
+                        <span>Fecha Caducidad:</span>
+                        <span class="val" id="pipVenc">EN ESPERA</span>
+                    </div>
+
+                    <div class="readout-pill" id="pipConfPill">
+                        <span>Índice Confianza Global:</span>
+                        <span class="val" id="pipConf">0%</span>
+                    </div>
+                </div>
+
+                <!-- Confidence Bar -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8; margin-bottom: 3px;">
+                        <span>Umbral de Rechazo: 60%</span>
+                        <span id="pipConfText">0%</span>
+                    </div>
+                    <div class="confidence-bar-bg" style="height: 10px; background: #0f172a; border-radius: 5px; overflow: hidden; border: 1px solid #334155;">
+                        <div id="pipConfBar" style="height: 100%; width: 0%; background: #10b981; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+
+                <!-- Diagnostic Explanation -->
+                <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 8px; padding: 10px; font-size: 0.75rem;">
+                    <div style="font-weight: bold; color: var(--cyan-accent); margin-bottom: 4px;">🔬 Diagnóstico del Clasificador OCR:</div>
+                    <div id="pipDiagnosticText" style="color: #cbd5e1; line-height: 1.4;">
+                        El sensor óptico está listo. Los fotogramas se congelan a 500 μs eliminando el desenfoque por movimiento.
+                    </div>
+                </div>
+
+                <!-- Quick Access to Documents -->
+                <div style="margin-top: auto; padding-top: 10px; border-top: 1px dashed #334155; display: flex; flex-direction: column; gap: 6px;">
+                    <a href="INFORME_TECNICO_KIMBY_QC_ULSA_2026.pdf" target="_blank" class="btn btn-sm" style="text-decoration: none; text-align: center; background: #dc2626; color: white; font-weight: bold;">
+                        📄 Descargar Informe Técnico PDF (ULSA)
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Audio Synthesizer (Shared with main app) -->
+    <script src="js/audio.js?v=20261004_02"></script>
+
+    <!-- 2D Conveyor Simulation Engine -->
+    <script>
+        // -------------------------------------------------------------
+        // SIMULADOR 2D DE BANDA TRANSPORTADORA & PISTÓN NEUMÁTICO KIMBY
+        // -------------------------------------------------------------
+        
+        const canvas = document.getElementById('conveyorCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = 1200;
+        const H = 420;
+
+        // PiP Canvas contexts
+        const pipRawCtx = document.getElementById('pipRawCanvas').getContext('2d');
+        const pipOtsuCtx = document.getElementById('pipOtsuCanvas').getContext('2d');
+
+        // Audio controls
+        let soundEnabled = true;
+        const btnSoundToggle = document.getElementById('btnSoundToggle');
+        btnSoundToggle.addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            btnSoundToggle.textContent = soundEnabled ? '🔊 Sonido: ON' : '🔇 Sonido: OFF';
+            btnSoundToggle.style.color = soundEnabled ? '#f8fafc' : '#94a3b8';
+        });
+
+        // Speed & Cadence
+        let speedMps = 1.20; // 1.2 m/s
+        let speedPx = speedMps * 4.2; // mapping 1.2 m/s to pixels per frame (~5 px/frame at 60fps)
+        let isRunning = true;
+        let autoFeed = true;
+        let autoFeedTimer = 0;
+        let packageCounter = 0;
+
+        // Stations Positions along X axis (in Canvas pixels)
+        const STATIONS = {
+            SENSOR_X: 360,     // Photocell Beam
+            CAMERA_X: 460,     // Optical Camera & Strobe Flash
+            PISTON_X: 840,     // Pneumatic Ejector Piston
+            EXIT_X: 1140       // Approved Box Infeed
+        };
+
+        // Conveyor Belt Geometry
+        const BELT = {
+            Y: 150,
+            HEIGHT: 130,
+            LEFT: 30,
+            RIGHT: 1170
+        };
+
+        // Piston Mechanical State (FESTO DFM)
+        const PISTON = {
+            X: STATIONS.PISTON_X,
+            baseY: 50,
+            stroke: 0,          // Current stroke length (0 to 120 px)
+            maxStroke: 130,
+            targetStroke: 0,
+            speed: 18,          // Fast pneumatic extension (~12ms)
+            isFired: false
+        };
+
+        // Arrays of packages
+        let packages = [];
+        let rejectedFallingPacks = [];
+        let beltOffset = 0;
+
+        // Statistics & History
+        let stats = { total: 0, passed: 0, rejected: 0 };
+        let historyLogs = [];
+
+        // DOM Status elements
+        const statusBanner = document.getElementById('statusBanner');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusSubtitle = document.getElementById('statusSubtitle');
+        const pneumaticArmBox = document.getElementById('pneumaticArmBox');
+        const pneumaticArmStatus = document.getElementById('pneumaticArmStatus');
+        const strobeAlert = document.getElementById('strobeAlert');
+        const cameraFlashOverlay = document.getElementById('cameraFlashOverlay');
+
+        // Telemetry DOM
+        const statTotal = document.getElementById('statTotal');
+        const statPassed = document.getElementById('statPassed');
+        const statRejected = document.getElementById('statRejected');
+        const statRejectRate = document.getElementById('statRejectRate');
+        const ppmVal = document.getElementById('ppmVal');
+        const transitTimeVal = document.getElementById('transitTimeVal');
+        const logTableBody = document.getElementById('logTableBody');
+
+        // PiP DOM
+        const pipLote = document.getElementById('pipLote');
+        const pipVenc = document.getElementById('pipVenc');
+        const pipConf = document.getElementById('pipConf');
+        const pipConfBar = document.getElementById('pipConfBar');
+        const pipConfText = document.getElementById('pipConfText');
+        const pipDiagnosticText = document.getElementById('pipDiagnosticText');
+        const pipTimestamp = document.getElementById('pipTimestamp');
+        const pipLotePill = document.getElementById('pipLotePill');
+        const pipVencPill = document.getElementById('pipVencPill');
+        const pipConfPill = document.getElementById('pipConfPill');
+
+        // Speed Slider Listener
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValDisplay = document.getElementById('speedVal');
+        speedSlider.addEventListener('input', (e) => {
+            speedMps = parseFloat(e.target.value);
+            speedPx = speedMps * 4.2;
+            speedValDisplay.textContent = speedMps.toFixed(2) + ' m/s';
+            updateKinematics();
+        });
+
+        // Auto Feed Toggle
+        const chkAutoFeed = document.getElementById('chkAutoFeed');
+        chkAutoFeed.addEventListener('change', (e) => {
+            autoFeed = e.target.checked;
+        });
+
+        // Toggle Conveyor Button
+        const btnToggleConveyor = document.getElementById('btnToggleConveyor');
+        btnToggleConveyor.addEventListener('click', () => {
+            isRunning = !isRunning;
+            btnToggleConveyor.textContent = isRunning ? '⏸ Pausar Banda' : '▶ Reanudar Banda';
+            btnToggleConveyor.className = isRunning ? 'btn btn-primary btn-sm' : 'btn btn-success btn-sm';
+            document.getElementById('headerStatusText').textContent = isRunning ? 'LÍNEA EN OPERACIÓN' : 'LÍNEA PAUSADA';
+        });
+
+        // Reset Conveyor Button
+        const btnResetConveyor = document.getElementById('btnResetConveyor');
+        btnResetConveyor.addEventListener('click', () => {
+            packages = [];
+            rejectedFallingPacks = [];
+            stats = { total: 0, passed: 0, rejected: 0 };
+            historyLogs = [];
+            updateStatsDOM();
+            renderLogsTable();
+            resetStatusBanner();
+        });
+
+        function updateKinematics() {
+            const ppm = Math.round((speedMps / 0.6) * 60);
+            ppmVal.textContent = ppm + ' ppm';
+            const transitTime = Math.round((0.85 / speedMps) * 1000);
+            transitTimeVal.textContent = transitTime + ' ms';
+        }
+
+        // -------------------------------------------------------------
+        // PACKAGE FACTORY: Generate Realistic Kimby Vienna Packs
+        // -------------------------------------------------------------
+        const TEST_TYPES = {
+            ok: {
+                id: 'ok',
+                name: 'Salchicha Conforme 500g',
+                lote: 'KMB-2026-A01',
+                venc: '15/12/2026',
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                confidence: 96,
+                verdict: 'APPROVED',
+                reason: 'Legibilidad 100%, código válido con prefijo KMB y fecha vigente posterior al turno.'
+            },
+            pins: {
+                id: 'pins',
+                name: 'Falla Pines Rotos (Drop-outs)',
+                lote: 'KM -202 -A0 ',
+                venc: '15/--/----',
+                blur: 0,
+                pins: 3,
+                opacity: 90,
+                wrinkle: false,
+                confidence: 38,
+                verdict: 'REJECTED',
+                reason: 'Ruptura topológica de caracteres por micro-resistencias quemadas en cabezal térmico.'
+            },
+            blur: {
+                id: 'blur',
+                name: 'Falla Tinta Borrosa / Frotada',
+                lote: 'KMB-????-???',
+                venc: '??/??/????',
+                blur: 6,
+                pins: 0,
+                opacity: 45,
+                wrinkle: false,
+                confidence: 42,
+                verdict: 'REJECTED',
+                reason: 'Tinta frotada e insuficiente temperatura en cabezal. Caracteres ilegibles fusionados.'
+            },
+            expired: {
+                id: 'expired',
+                name: 'Falla Sanitaria Fecha Caducada',
+                lote: 'KMB-2026-A01',
+                venc: '10/01/2023',
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                confidence: 94,
+                verdict: 'REJECTED',
+                reason: 'Bloqueo sanitario estricto: la fecha de caducidad leída es anterior al lote de producción.'
+            },
+            wrong_lot: {
+                id: 'wrong_lot',
+                name: 'Falla Lote Trunco Sin KMB',
+                lote: 'LOT-99',
+                venc: '15/12/2026',
+                blur: 1,
+                pins: 0,
+                opacity: 80,
+                wrinkle: false,
+                confidence: 52,
+                verdict: 'REJECTED',
+                reason: 'Violación de trazabilidad: código de lote menor a 10 caracteres y sin prefijo Kimby KMB.'
+            },
+            wrinkle: {
+                id: 'wrinkle',
+                name: 'Falla Arruga Plástica y Reflejo',
+                lote: 'KMB-2026-A01',
+                venc: '15/12/2026',
+                blur: 2,
+                pins: 0,
+                opacity: 100,
+                wrinkle: true,
+                confidence: 48,
+                verdict: 'REJECTED',
+                reason: 'Reflejo especular parásito sobre film retráctil al vacío ciega lectura de fecha.'
+            }
+        };
+
+        function createPackage(typeKey = 'ok', startX = -130) {
+            packageCounter++;
+            const spec = TEST_TYPES[typeKey] || TEST_TYPES.ok;
+            return {
+                id: packageCounter,
+                type: typeKey,
+                name: spec.name,
+                lote: spec.lote,
+                venc: spec.venc,
+                blur: spec.blur,
+                pins: spec.pins,
+                opacity: spec.opacity,
+                wrinkle: spec.wrinkle,
+                confidence: spec.confidence,
+                verdict: spec.verdict,
+                reason: spec.reason,
+                x: startX,
+                y: BELT.Y + 25,
+                w: 120,
+                h: 80,
+                status: 'moving', // 'moving', 'inspected', 'ejected', 'passed'
+                isInspected: false,
+                isEjected: false,
+                rotation: 0
+            };
+        }
+
+        window.spawnTestPackage = function(typeKey) {
+            // Check if there is already a package right at spawn position to avoid overlap
+            if (packages.length > 0 && packages[packages.length - 1].x < 80) {
+                packages[packages.length - 1].x = 100;
+            }
+            const p = createPackage(typeKey, -120);
+            packages.push(p);
+        };
+
+        // -------------------------------------------------------------
+        // ANIMATION LOOP (RequestAnimationFrame)
+        // -------------------------------------------------------------
+        function animate() {
+            if (isRunning) {
+                updatePhysics();
+            }
+            drawScene();
+            requestAnimationFrame(animate);
+        }
+
+        function updatePhysics() {
+            // Conveyor movement
+            beltOffset = (beltOffset + speedPx) % 36;
+
+            // Auto spawn feeder
+            if (autoFeed) {
+                autoFeedTimer += speedPx;
+                // Cadence interval: spawn new pack every ~280 pixels of conveyor travel
+                if (autoFeedTimer > 280) {
+                    autoFeedTimer = 0;
+                    // 82% conforming, 18% defects in natural stream
+                    const rand = Math.random();
+                    let chosen = 'ok';
+                    if (rand > 0.82) {
+                        const defectKeys = ['pins', 'blur', 'expired', 'wrong_lot', 'wrinkle'];
+                        chosen = defectKeys[Math.floor(Math.random() * defectKeys.length)];
+                    }
+                    packages.push(createPackage(chosen, -130));
+                }
+            }
+
+            // Update Piston Physical Extension
+            if (PISTON.targetStroke > PISTON.stroke) {
+                PISTON.stroke = Math.min(PISTON.targetStroke, PISTON.stroke + PISTON.speed);
+            } else if (PISTON.targetStroke < PISTON.stroke) {
+                PISTON.stroke = Math.max(PISTON.targetStroke, PISTON.stroke - (PISTON.speed * 0.7));
+            }
+
+            // Auto-retract piston once extended
+            if (PISTON.stroke >= PISTON.maxStroke) {
+                PISTON.targetStroke = 0;
+            }
+
+            // Update packages on belt
+            for (let i = packages.length - 1; i >= 0; i--) {
+                const p = packages[i];
+                p.x += speedPx;
+
+                // 1. Photocell Beam Check (Station 1)
+                const packMidX = p.x + p.w / 2;
+
+                // 2. Optical Camera & Strobe Station (Station 2)
+                if (!p.isInspected && packMidX >= STATIONS.CAMERA_X) {
+                    p.isInspected = true;
+                    performInspection(p);
+                }
+
+                // 3. Pneumatic Rejector Station (Station 3)
+                if (p.isInspected && p.verdict === 'REJECTED' && !p.isEjected) {
+                    if (packMidX >= STATIONS.PISTON_X - 10 && packMidX <= STATIONS.PISTON_X + 45) {
+                        p.isEjected = true;
+                        firePiston(p);
+                    }
+                }
+
+                // 4. Remove passed packages at end of conveyor
+                if (p.x > STATIONS.EXIT_X) {
+                    if (p.verdict === 'APPROVED') {
+                        // Successfully reached approved box
+                    }
+                    packages.splice(i, 1);
+                }
+            }
+
+            // Update falling rejected packages (sliding down the chute)
+            for (let i = rejectedFallingPacks.length - 1; i >= 0; i--) {
+                const rp = rejectedFallingPacks[i];
+                rp.x += rp.vx;
+                rp.y += rp.vy;
+                rp.vy += 0.8; // gravity
+                rp.rotation += 0.05;
+                if (rp.y > H + 100) {
+                    rejectedFallingPacks.splice(i, 1);
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // INSPECTION EXECUTION
+        // -------------------------------------------------------------
+        function performInspection(pack) {
+            // Trigger visual and audio camera flash
+            triggerCameraFlash();
+            if (soundEnabled && window.industrialAudio) {
+                window.industrialAudio.playCameraShutter();
+            }
+
+            // Update PiP Display
+            updatePiP(pack);
+
+            const isPass = pack.verdict === 'APPROVED';
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+
+            if (isPass) {
+                stats.passed++;
+                handleApprovedUI(pack, timeStr);
+            } else {
+                stats.rejected++;
+                handleRejectedUI(pack, timeStr);
+            }
+            stats.total++;
+            updateStatsDOM();
+
+            // Append to audit log
+            addAuditLog({
+                time: timeStr,
+                num: pack.id,
+                lote: pack.lote,
+                venc: pack.venc,
+                conf: pack.confidence + '%',
+                verdict: isPass ? 'APROBADO' : 'RECHAZADO',
+                actuator: isPass ? 'Cinta continua' : 'Brazo neumático (24V)'
+            });
+        }
+
+        function triggerCameraFlash() {
+            cameraFlashOverlay.classList.add('active');
+            setTimeout(() => {
+                cameraFlashOverlay.classList.remove('active');
+            }, 80);
+        }
+
+        function firePiston(pack) {
+            // Trigger FESTO cylinder forward
+            PISTON.targetStroke = PISTON.maxStroke;
+            if (soundEnabled && window.industrialAudio) {
+                window.industrialAudio.playPneumatic();
+            }
+
+            // Transfer pack to falling rejected array
+            rejectedFallingPacks.push({
+                ...pack,
+                vx: 1.2,
+                vy: 4.5,
+                rotation: 0
+            });
+
+            // Remove from main belt
+            const idx = packages.indexOf(pack);
+            if (idx !== -1) {
+                packages.splice(idx, 1);
+            }
+
+            // Visual actuator box alert
+            pneumaticArmBox.className = 'actuator-box active';
+            pneumaticArmStatus.innerHTML = `
+                <strong>DISPARO DEL CILINDRO NEUMÁTICO FESTO:</strong><br>
+                <span class="pulse-code">Pulso PLC 24V DC ejecutado. Salchicha #${pack.id} eyectada a la tolva de merma.</span>
+            `;
+            setTimeout(() => {
+                if (pneumaticArmBox.classList.contains('active')) {
+                    pneumaticArmBox.className = 'actuator-box idle';
+                    pneumaticArmStatus.textContent = 'LISTO (STANDBY) - Vástago retraído a 0V DC.';
+                }
+            }, 1800);
+        }
+
+        function handleApprovedUI(pack, timestamp) {
+            statusBanner.className = 'status-banner approved';
+            statusIcon.innerHTML = '✔';
+            statusTitle.textContent = `PRODUCTO #${pack.id} APROBADO (100% LEGIBLE)`;
+            statusSubtitle.textContent = `[${timestamp}] - LOTE: ${pack.lote} | VENC: ${pack.venc} — ${pack.reason}`;
+
+            pneumaticArmBox.className = 'actuator-box idle';
+            pneumaticArmStatus.innerHTML = '<strong>PASO LIBRE:</strong> Cinta transportadora activa hacia empaque final.';
+
+            if (soundEnabled && window.industrialAudio) {
+                window.industrialAudio.playPass();
+            }
+        }
+
+        function handleRejectedUI(pack, timestamp) {
+            statusBanner.className = 'status-banner rejected';
+            statusIcon.innerHTML = '✖';
+            statusTitle.textContent = `¡PRODUCTO #${pack.id} DESCARTADO! (PULSO PLC 24V DC)`;
+            statusSubtitle.textContent = `[${timestamp}] - DEFECTO DETECTADO: ${pack.reason}`;
+
+            // Full screen red strobe alert
+            strobeAlert.classList.add('flash');
+            setTimeout(() => {
+                strobeAlert.classList.remove('flash');
+            }, 1100);
+
+            if (soundEnabled && window.industrialAudio) {
+                window.industrialAudio.playReject();
+            }
+        }
+
+        function resetStatusBanner() {
+            statusBanner.className = 'status-banner idle';
+            statusIcon.innerHTML = '⚙';
+            statusTitle.textContent = 'LÍNEA DE EMPAQUE EN ESPERA';
+            statusSubtitle.textContent = 'Haga clic en los botones de prueba para inyectar paquetes a la banda.';
+            pneumaticArmBox.className = 'actuator-box idle';
+            pneumaticArmStatus.textContent = 'LISTO (STANDBY)';
+        }
+
+        function updateStatsDOM() {
+            statTotal.textContent = stats.total;
+            statPassed.textContent = stats.passed;
+            statRejected.textContent = stats.rejected;
+            const rate = stats.total > 0 ? ((stats.rejected / stats.total) * 100).toFixed(1) : '0.0';
+            statRejectRate.textContent = rate + '%';
+        }
+
+        function addAuditLog(entry) {
+            historyLogs.unshift(entry);
+            if (historyLogs.length > 30) historyLogs.pop();
+            renderLogsTable();
+        }
+
+        function renderLogsTable() {
+            if (historyLogs.length === 0) {
+                logTableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 18px;">Sin registros aún.</td></tr>`;
+                return;
+            }
+            logTableBody.innerHTML = historyLogs.map(item => `
+                <tr>
+                    <td>${item.time}</td>
+                    <td><strong>#${item.num}</strong></td>
+                    <td style="font-family: var(--font-mono); font-weight: bold;">${item.lote}</td>
+                    <td style="font-family: var(--font-mono);">${item.venc}</td>
+                    <td>${item.conf}</td>
+                    <td><span class="badge ${item.verdict === 'APROBADO' ? 'badge-pass' : 'badge-reject'}">${item.verdict}</span></td>
+                    <td>${item.actuator}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Export Log CSV
+        document.getElementById('btnExportCSV').addEventListener('click', () => {
+            if (historyLogs.length === 0) {
+                alert('No hay datos en la bitácora para exportar.');
+                return;
+            }
+            let csv = 'Hora,Paquete,Lote,Vencimiento,Confianza,Veredicto,Accion_Mecanica\n';
+            historyLogs.forEach(row => {
+                csv += `"${row.time}","${row.num}","${row.lote}","${row.venc}","${row.conf}","${row.verdict}","${row.actuator}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bitacora_kimby_simulacion_${Date.now()}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // -------------------------------------------------------------
+        // PICTURE-IN-PICTURE (PiP) UPDATE
+        // -------------------------------------------------------------
+        function updatePiP(pack) {
+            const now = new Date();
+            pipTimestamp.textContent = now.toTimeString().split(' ')[0];
+
+            pipLote.textContent = pack.lote;
+            pipVenc.textContent = pack.venc;
+            pipConf.textContent = pack.confidence + '%';
+            pipConfText.textContent = pack.confidence + '%';
+            pipConfBar.style.width = pack.confidence + '%';
+
+            if (pack.confidence >= 80) {
+                pipConfBar.style.backgroundColor = '#10b981';
+                pipConfPill.className = 'readout-pill highlight-green';
+            } else if (pack.confidence >= 60) {
+                pipConfBar.style.backgroundColor = '#f59e0b';
+                pipConfPill.className = 'readout-pill';
+            } else {
+                pipConfBar.style.backgroundColor = '#ef4444';
+                pipConfPill.className = 'readout-pill highlight-red';
+            }
+
+            if (pack.verdict === 'APPROVED') {
+                pipLotePill.className = 'readout-pill highlight-green';
+                pipVencPill.className = 'readout-pill highlight-green';
+            } else {
+                pipLotePill.className = 'readout-pill highlight-red';
+                pipVencPill.className = 'readout-pill highlight-red';
+            }
+
+            pipDiagnosticText.textContent = pack.reason;
+
+            // Render high-res snapshot on raw PiP canvas
+            drawPiPRaw(pack);
+            // Render Otsu binarized mask on second PiP canvas
+            drawPiPOtsu(pack);
+        }
+
+        function drawPiPRaw(pack) {
+            pipRawCtx.clearRect(0, 0, 300, 150);
+            
+            // Background packaging red
+            pipRawCtx.fillStyle = '#b91c1c';
+            pipRawCtx.fillRect(0, 0, 300, 150);
+            
+            // White thermal label card
+            pipRawCtx.fillStyle = '#ffffff';
+            pipRawCtx.fillRect(15, 15, 270, 120);
+
+            // Kimby red tag
+            pipRawCtx.fillStyle = '#dc2626';
+            pipRawCtx.fillRect(15, 15, 270, 24);
+            pipRawCtx.fillStyle = '#ffffff';
+            pipRawCtx.font = 'bold 12px sans-serif';
+            pipRawCtx.textAlign = 'center';
+            pipRawCtx.fillText('EMBUTIDOS KIMBY - CONTROL QC', 150, 32);
+
+            // Text
+            pipRawCtx.textAlign = 'left';
+            pipRawCtx.fillStyle = pack.type === 'expired' ? '#dc2626' : (pack.opacity < 60 ? '#64748b' : '#0f172a');
+            pipRawCtx.font = 'bold 14px monospace';
+            
+            if (pack.blur > 0) {
+                pipRawCtx.filter = `blur(${pack.blur * 0.7}px)`;
+            } else {
+                pipRawCtx.filter = 'none';
+            }
+
+            pipRawCtx.fillText(`LOTE: ${pack.lote}`, 25, 68);
+            pipRawCtx.fillText(`VENC: ${pack.venc}`, 25, 96);
+            pipRawCtx.font = '10px monospace';
+            pipRawCtx.fillText('500g • TURNO 1', 25, 118);
+            pipRawCtx.filter = 'none';
+
+            // Pin dropouts (white cuts)
+            if (pack.pins > 0) {
+                pipRawCtx.fillStyle = '#ffffff';
+                pipRawCtx.fillRect(15, 64, 270, 3);
+                pipRawCtx.fillRect(15, 92, 270, 3);
+            }
+
+            // Wrinkle glare overlay
+            if (pack.wrinkle) {
+                pipRawCtx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+                pipRawCtx.beginPath();
+                pipRawCtx.moveTo(40, 15);
+                pipRawCtx.lineTo(95, 15);
+                pipRawCtx.lineTo(210, 135);
+                pipRawCtx.lineTo(155, 135);
+                pipRawCtx.closePath();
+                pipRawCtx.fill();
+            }
+        }
+
+        function drawPiPOtsu(pack) {
+            pipOtsuCtx.clearRect(0, 0, 300, 150);
+            
+            // Otsu binary: background pure white, characters pure black (or inverted)
+            pipOtsuCtx.fillStyle = '#000000';
+            pipOtsuCtx.fillRect(0, 0, 300, 150);
+
+            // Binarized thermal label area
+            pipOtsuCtx.fillStyle = '#ffffff';
+            pipOtsuCtx.fillRect(15, 15, 270, 120);
+
+            pipOtsuCtx.fillStyle = '#000000';
+            pipOtsuCtx.font = 'bold 14px monospace';
+            pipOtsuCtx.textAlign = 'left';
+
+            if (pack.type === 'blur') {
+                // Extreme degradation under threshold
+                pipOtsuCtx.fillText('LOTE: KMB-????-???', 25, 68);
+                pipOtsuCtx.fillStyle = '#94a3b8';
+                pipOtsuCtx.fillText('VENC: [ILEGIBLE]', 25, 96);
+            } else {
+                pipOtsuCtx.fillText(`LOTE: ${pack.lote}`, 25, 68);
+                pipOtsuCtx.fillText(`VENC: ${pack.venc}`, 25, 96);
+            }
+
+            if (pack.pins > 0) {
+                pipOtsuCtx.fillStyle = '#ffffff';
+                pipOtsuCtx.fillRect(15, 64, 270, 4);
+                pipOtsuCtx.fillRect(15, 92, 270, 4);
+            }
+
+            if (pack.wrinkle) {
+                // Glare creates giant white blank void in Otsu
+                pipOtsuCtx.fillStyle = '#ffffff';
+                pipOtsuCtx.beginPath();
+                pipOtsuCtx.moveTo(50, 15);
+                pipOtsuCtx.lineTo(110, 15);
+                pipOtsuCtx.lineTo(230, 135);
+                pipOtsuCtx.lineTo(170, 135);
+                pipOtsuCtx.closePath();
+                pipOtsuCtx.fill();
+            }
+        }
+
+        // -------------------------------------------------------------
+        // SCENE RENDERING: CANVAS 2D INDUSTRIAL DIGITAL TWIN
+        // -------------------------------------------------------------
+        function drawScene() {
+            ctx.clearRect(0, 0, W, H);
+
+            // 1. Factory Floor Background (Grid & Depth)
+            drawFactoryFloor();
+
+            // 2. Conveyor Belt Frame & Moving Rubber Belt
+            drawConveyorStructure();
+
+            // 3. Approved Outfeed Cardboard Box (Right End)
+            drawApprovedBox();
+
+            // 4. Rejection Chute & Bin (Station 3 Bottom)
+            drawRejectionChute();
+
+            // 5. Sausage Packages on the Belt
+            drawPackages();
+
+            // 6. Falling Rejected Packages
+            drawFallingPackages();
+
+            // 7. Station 1: Photocell Emitter & Infrared Laser Beam
+            drawPhotocellStation();
+
+            // 8. Station 2: Optical Camera & Strobe Bridge
+            drawCameraStation();
+
+            // 9. Station 3: FESTO DFM Pneumatic Piston Cylinder
+            drawPneumaticPiston();
+
+            // 10. HUD Legends & Distance Scale
+            drawOverlayLabels();
+        }
+
+        function drawFactoryFloor() {
+            // Dark industrial floor with perspective tile lines
+            ctx.fillStyle = '#0c1017';
+            ctx.fillRect(0, 0, W, H);
+
+            ctx.strokeStyle = '#161f2e';
+            ctx.lineWidth = 1;
+            // Horizontal floor joints
+            for (let y = 60; y < H; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(W, y);
+                ctx.stroke();
+            }
+            // Vertical floor joints
+            for (let x = 0; x < W; x += 80) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, H);
+                ctx.stroke();
+            }
+        }
+
+        function drawConveyorStructure() {
+            // Stainless steel legs (4 pairs)
+            const legX = [100, 420, 780, 1080];
+            ctx.fillStyle = '#334155';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            legX.forEach(x => {
+                // Left leg of pair
+                ctx.fillRect(x, BELT.Y + BELT.HEIGHT, 14, H - (BELT.Y + BELT.HEIGHT) - 20);
+                ctx.strokeRect(x, BELT.Y + BELT.HEIGHT, 14, H - (BELT.Y + BELT.HEIGHT) - 20);
+                // Leveling footpad
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(x - 4, H - 24, 22, 10);
+                ctx.fillStyle = '#334155';
+            });
+
+            // Longitudinal Stainless steel bed
+            const bedY = BELT.Y + 10;
+            const bedH = BELT.HEIGHT - 20;
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(BELT.LEFT, bedY, BELT.RIGHT - BELT.LEFT, bedH);
+
+            // Rollers at both ends
+            drawRoller(BELT.LEFT + 15, BELT.Y + BELT.HEIGHT / 2, 45);
+            drawRoller(BELT.RIGHT - 15, BELT.Y + BELT.HEIGHT / 2, 45);
+
+            // Moving Black Textured Rubber Belt
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(BELT.LEFT + 15, BELT.Y + 16, BELT.RIGHT - BELT.LEFT - 30, BELT.HEIGHT - 32);
+
+            // Animated directional stripes on the moving belt
+            ctx.fillStyle = '#1e293b';
+            for (let x = BELT.LEFT + 15 + beltOffset; x < BELT.RIGHT - 30; x += 36) {
+                ctx.beginPath();
+                ctx.moveTo(x, BELT.Y + 16);
+                ctx.lineTo(x + 14, BELT.Y + BELT.HEIGHT / 2);
+                ctx.lineTo(x, BELT.Y + BELT.HEIGHT - 16);
+                ctx.lineTo(x - 4, BELT.Y + BELT.HEIGHT - 16);
+                ctx.lineTo(x + 10, BELT.Y + BELT.HEIGHT / 2);
+                ctx.lineTo(x - 4, BELT.Y + 16);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Stainless Steel Side Guardrails
+            ctx.fillStyle = '#475569';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            // Top rail
+            ctx.fillRect(BELT.LEFT, BELT.Y + 6, BELT.RIGHT - BELT.LEFT, 10);
+            ctx.strokeRect(BELT.LEFT, BELT.Y + 6, BELT.RIGHT - BELT.LEFT, 10);
+            // Bottom rail (with gap at pneumatic piston rejection station!)
+            const gapStart = STATIONS.PISTON_X - 60;
+            const gapEnd = STATIONS.PISTON_X + 70;
+            // Pre-piston bottom rail
+            ctx.fillRect(BELT.LEFT, BELT.Y + BELT.HEIGHT - 16, gapStart - BELT.LEFT, 10);
+            ctx.strokeRect(BELT.LEFT, BELT.Y + BELT.HEIGHT - 16, gapStart - BELT.LEFT, 10);
+            // Post-piston bottom rail
+            ctx.fillRect(gapEnd, BELT.Y + BELT.HEIGHT - 16, BELT.RIGHT - gapEnd, 10);
+            ctx.strokeRect(gapEnd, BELT.Y + BELT.HEIGHT - 16, BELT.RIGHT - gapEnd, 10);
+        }
+
+        function drawRoller(cx, cy, r) {
+            ctx.fillStyle = '#475569';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Center bearing cap
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawApprovedBox() {
+            const bx = STATIONS.EXIT_X + 10;
+            const by = BELT.Y + 10;
+            const bw = 50;
+            const bh = 110;
+
+            // Cardboard corrugated texture
+            ctx.fillStyle = '#78350f';
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeStyle = '#b45309';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(bx, by, bw, bh);
+
+            // Kimby approval green tape
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(bx + 4, by + 40, bw - 8, 25);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('KIMBY OK', bx + bw / 2, by + 56);
+        }
+
+        function drawRejectionChute() {
+            const cx = STATIONS.PISTON_X - 60;
+            const cy = BELT.Y + BELT.HEIGHT - 10;
+            const cw = 130;
+            const ch = 90;
+
+            // Slanted stainless chute
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + cw, cy);
+            ctx.lineTo(cx + cw + 25, cy + ch);
+            ctx.lineTo(cx - 25, cy + ch);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Rejection bin cushion & label
+            ctx.fillStyle = '#991b1b';
+            ctx.fillRect(cx - 20, cy + ch - 12, cw + 40, 14);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('TOLVA DE MERMAS (RECHAZO 24V)', cx + cw / 2, cy + ch / 2 + 8);
+        }
+
+        // -------------------------------------------------------------
+        // DRAW SAUSAGE PACKAGES (Kimby 6-Pack in Vacuum Film)
+        // -------------------------------------------------------------
+        function drawPackages() {
+            packages.forEach(p => {
+                drawSausagePackage(p.x, p.y, p.w, p.h, p);
+            });
+        }
+
+        function drawFallingPackages() {
+            rejectedFallingPacks.forEach(rp => {
+                ctx.save();
+                ctx.translate(rp.x + rp.w / 2, rp.y + rp.h / 2);
+                ctx.rotate(rp.rotation);
+                drawSausagePackage(-rp.w / 2, -rp.h / 2, rp.w, rp.h, rp);
+                ctx.restore();
+            });
+        }
+
+        function drawSausagePackage(x, y, w, h, p) {
+            ctx.save();
+
+            // 1. Transparent Vacuum Film Border with Heat Seals (Left/Right crimps)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(x, y, w, h);
+            ctx.strokeRect(x, y, w, h);
+
+            // Heat seal crimped teeth at ends
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            for (let cy = y + 4; cy < y + h - 4; cy += 6) {
+                ctx.fillRect(x + 2, cy, 4, 3);
+                ctx.fillRect(x + w - 6, cy, 4, 3);
+            }
+
+            // 2. Sausages (6 warm red sausages arranged vertically inside package)
+            const sCount = 5;
+            const sH = (h - 16) / sCount;
+            for (let i = 0; i < sCount; i++) {
+                const sy = y + 8 + (i * sH);
+                // Sausage body gradient
+                const sGrad = ctx.createLinearGradient(x + 8, sy, x + w - 8, sy);
+                sGrad.addColorStop(0, '#991b1b');
+                sGrad.addColorStop(0.3, '#c2410c');
+                sGrad.addColorStop(0.7, '#ea580c');
+                sGrad.addColorStop(1, '#991b1b');
+                ctx.fillStyle = sGrad;
+                
+                // Rounded sausage shape
+                ctx.beginPath();
+                ctx.roundRect(x + 8, sy + 1, w - 16, sH - 2, 4);
+                ctx.fill();
+
+                // Sausage highlight shine
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+                ctx.fillRect(x + 14, sy + 2, w - 28, 2);
+            }
+
+            // 3. Central Thermal Label Card
+            const lw = w * 0.72;
+            const lh = h * 0.70;
+            const lx = x + (w - lw) / 2;
+            const ly = y + (h - lh) / 2;
+
+            // White thermal paper label
+            ctx.fillStyle = '#ffffff';
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(lx, ly, lw, lh, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Red Kimby brand header on label
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(lx, ly, lw, 14);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('KIMBY QC', lx + lw / 2, ly + 10);
+
+            // Label text (Batch & Expiry)
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 8.5px monospace';
+            
+            // Text color based on condition
+            if (p.type === 'expired') {
+                ctx.fillStyle = '#dc2626';
+            } else if (p.opacity < 60) {
+                ctx.fillStyle = '#94a3b8';
+            } else {
+                ctx.fillStyle = '#0f172a';
+            }
+
+            // Apply blur filter if simulated
+            if (p.blur > 0) {
+                ctx.filter = `blur(${p.blur * 0.5}px)`;
+            }
+
+            ctx.fillText(p.lote.substring(0, 14), lx + 6, ly + 26);
+            ctx.fillText(p.venc.substring(0, 14), lx + 6, ly + 38);
+            ctx.filter = 'none';
+
+            // Mini Barcode on label bottom
+            ctx.fillStyle = '#000000';
+            for (let bx = lx + 6; bx < lx + lw - 6; bx += 3) {
+                if (Math.sin(bx * 13) > 0) {
+                    ctx.fillRect(bx, ly + 42, 1.5, 8);
+                }
+            }
+
+            // Pin dropout lines (horizontal cuts through text)
+            if (p.pins > 0) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(lx, ly + 24, lw, 2);
+                ctx.fillRect(lx, ly + 36, lw, 2);
+            }
+
+            // Plastic wrinkle glare artifact
+            if (p.wrinkle) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+                ctx.beginPath();
+                ctx.moveTo(lx + 8, ly);
+                ctx.lineTo(lx + 24, ly);
+                ctx.lineTo(lx + lw - 8, ly + lh);
+                ctx.lineTo(lx + lw - 24, ly + lh);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Package ID Tag
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(x + 2, y + 2, 22, 12);
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 8px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('#' + p.id, x + 13, y + 11);
+
+            ctx.restore();
+        }
+
+        // -------------------------------------------------------------
+        // STATIONS GRAPHICS (Sensor, Camera, FESTO Piston)
+        // -------------------------------------------------------------
+        function drawPhotocellStation() {
+            const sx = STATIONS.SENSOR_X;
+
+            // Emitter Pillar (Top)
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(sx - 8, BELT.Y - 25, 16, 25);
+            ctx.strokeStyle = '#38bdf8';
+            ctx.strokeRect(sx - 8, BELT.Y - 25, 16, 25);
+
+            // Emitter optical lens
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(sx, BELT.Y, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Receiver Pillar (Bottom)
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(sx - 8, BELT.Y + BELT.HEIGHT, 16, 25);
+            ctx.strokeRect(sx - 8, BELT.Y + BELT.HEIGHT, 16, 25);
+
+            // Check if beam is interrupted by a package
+            let beamBroken = false;
+            for (let p of packages) {
+                if (p.x <= sx && (p.x + p.w) >= sx) {
+                    beamBroken = true;
+                    break;
+                }
+            }
+
+            // Infrared Laser Beam
+            if (beamBroken) {
+                // Interrupted beam (Flashes yellow)
+                ctx.strokeStyle = '#facc15';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(sx, BELT.Y);
+                ctx.lineTo(sx, BELT.Y + BELT.HEIGHT);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Sensor active LED
+                ctx.fillStyle = '#facc15';
+                ctx.beginPath();
+                ctx.arc(sx, BELT.Y - 14, 4, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                // Continuous invisible infrared beam (drawn as thin red line)
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.75)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(sx, BELT.Y);
+                ctx.lineTo(sx, BELT.Y + BELT.HEIGHT);
+                ctx.stroke();
+
+                // Standby LED
+                ctx.fillStyle = '#10b981';
+                ctx.beginPath();
+                ctx.arc(sx, BELT.Y - 14, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawCameraStation() {
+            const cx = STATIONS.CAMERA_X;
+            const topY = BELT.Y - 80;
+
+            // Stainless Steel Gantry Arch
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(cx - 35, BELT.Y + BELT.HEIGHT);
+            ctx.lineTo(cx - 35, topY);
+            ctx.lineTo(cx + 35, topY);
+            ctx.lineTo(cx + 35, BELT.Y + BELT.HEIGHT);
+            ctx.stroke();
+
+            // Camera Body (Sony Industrial Global Shutter)
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 2;
+            ctx.fillRect(cx - 24, topY + 6, 48, 40);
+            ctx.strokeRect(cx - 24, topY + 6, 48, 40);
+
+            // Sony Lens Barrel
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(cx - 15, topY + 46, 30, 22);
+
+            // Circular LED Strobe Ring
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, topY + 68, 18, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Status LED on Camera
+            const lastLog = historyLogs[0];
+            const isLastPass = lastLog && lastLog.verdict === 'APROBADO';
+            ctx.fillStyle = lastLog ? (isLastPass ? '#10b981' : '#ef4444') : '#0284c7';
+            ctx.beginPath();
+            ctx.arc(cx, topY + 16, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('CAM-01 OCR', cx, topY - 6);
+        }
+
+        function drawPneumaticPiston() {
+            const px = PISTON.X;
+            const py = BELT.Y - 95;
+
+            // Aluminum Mounting Bracket
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(px - 30, py, 60, 20);
+
+            // FESTO DFM Double-acting Cylinder Body
+            ctx.fillStyle = '#475569';
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 2;
+            ctx.fillRect(px - 22, py + 20, 44, 60);
+            ctx.strokeRect(px - 22, py + 20, 44, 60);
+
+            // Blue Pneumatic Hoses (FESTO 6mm tubing)
+            ctx.strokeStyle = '#0284c7';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(px - 14, py + 30);
+            ctx.bezierCurveTo(px - 45, py + 25, px - 50, py - 10, px - 60, py - 20);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(px - 14, py + 65);
+            ctx.bezierCurveTo(px - 45, py + 60, px - 55, py - 5, px - 65, py - 20);
+            ctx.stroke();
+
+            // Chrome Piston Rod (Animates based on PISTON.stroke)
+            const rodY = py + 80;
+            const currentRodLength = PISTON.stroke;
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(px - 6, rodY, 12, currentRodLength + 10);
+
+            // Rubber Pusher Plate
+            const plateY = rodY + currentRodLength + 10;
+            ctx.fillStyle = '#dc2626';
+            ctx.strokeStyle = '#f87171';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(px - 28, plateY, 56, 14, 4);
+            ctx.fill();
+            ctx.stroke();
+
+            // Piston Label
+            ctx.fillStyle = '#f472b6';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('FESTO DFM 24V', px, py - 6);
+        }
+
+        function drawOverlayLabels() {
+            // Distance marker d = 0.85m between camera and piston
+            const camX = STATIONS.CAMERA_X;
+            const pistX = STATIONS.PISTON_X;
+            const dimY = BELT.Y - 105;
+
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(camX, dimY);
+            ctx.lineTo(pistX, dimY);
+            // End markers
+            ctx.moveTo(camX, dimY - 6);
+            ctx.lineTo(camX, dimY + 6);
+            ctx.moveTo(pistX, dimY - 6);
+            ctx.lineTo(pistX, dimY + 6);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.font = 'bold 11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Distancia de Tránsito: d = 0.85 m (t = ${(0.85 / speedMps * 1000).toFixed(0)} ms)`, (camX + pistX) / 2, dimY - 6);
+        }
+
+        // -------------------------------------------------------------
+        // INITIALIZE ON LOAD
+        // -------------------------------------------------------------
+        updateKinematics();
+        // Spawn first 2 packages to start with motion
+        packages.push(createPackage('ok', 140));
+        packages.push(createPackage('pins', -80));
+        
+        // Start animation loop
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

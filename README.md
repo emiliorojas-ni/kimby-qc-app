@@ -18,6 +18,8 @@
 
 Acceso inmediato sin instalación desde cualquier navegador móvil o de escritorio:
 
+* 🏭 **Simulador 2D Interactivo de Banda Transportadora & Pistón:**  
+  [https://emiliorojas-ni.github.io/kimby-qc-app/simulador.html](https://emiliorojas-ni.github.io/kimby-qc-app/simulador.html)
 * 🚀 **Aplicación Principal de Inspección SCADA / Móvil:**  
   [https://emiliorojas-ni.github.io/kimby-qc-app/](https://emiliorojas-ni.github.io/kimby-qc-app/)
 * 🎨 **Estudio Web y Generador de Etiquetas Kimby (Físico / Blender):**  
@@ -79,6 +81,9 @@ flowchart LR
 ---
 
 ## 📸 Evidencia Visual e Interfaces
+
+### Gemelo Digital 2D: Simulación de Banda Transportadora & Pistón FESTO
+![Simulador 2D](fig_simulador_2d.png)
 
 | Inspección Aprobada (Conforme) | Detección de Falla Térmica (Rechazado) |
 |:---:|:---:|
