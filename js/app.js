@@ -250,11 +250,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Visual loading state
         setStatusLoading();
 
-        // 1. Preprocess using Otsu binarization for the OCR engine
+        // 1. Preprocess using selected filter (dynamic contrast by default for real paper & mobile)
+        const filter = filterSelect ? filterSelect.value : 'contrast';
         const roi = getSelectedRoi();
-        const ocrCanvas = window.visionProcessor.process(currentSourceImage, 'binarized', roi);
+        const ocrCanvas = window.visionProcessor.process(currentSourceImage, filter, roi);
 
-        // 2. Perform OCR recognition and Rule Evaluation
+        // 2. Perform Multi-Angle OCR recognition and Rule Evaluation
         const result = await window.qcOCREngine.recognize(ocrCanvas, currentSourceSample);
 
         // Cache last detected values

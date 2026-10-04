@@ -64,14 +64,14 @@ for p_idx in [4, 5]:
             run.font.color.rgb = BLACK
 
 p8 = doc.paragraphs[8]
-p8.text = "FACULTAD DE INGENIERÍA • INGENIERÍA MECATRÓNICA"
+p8.text = "RESOLUCIÓN DE ESTUDIO DE CASO"
 p8.runs[0].font.bold = True
 p8.runs[0].font.name = FONT_NAME
 p8.runs[0].font.size = Pt(13)
 p8.runs[0].font.color.rgb = BLACK
 
 p9 = doc.paragraphs[9]
-p9.text = "RESOLUCIÓN DE CASO DE ESTUDIO: SISTEMA AUTOMATIZADO DE INSPECCIÓN EN LÍNEA Y CONTROL DE CALIDAD POR RECONOCIMIENTO ÓPTICO DE CARACTERES (OCR)\nCASO 1: EMBUTIDOS KIMBY"
+p9.text = "SISTEMA AUTOMATIZADO DE INSPECCIÓN EN LÍNEA Y CONTROL DE CALIDAD POR RECONOCIMIENTO ÓPTICO DE CARACTERES (OCR)\nCASO 1: EMBUTIDOS KIMBY"
 p9.runs[0].font.bold = True
 p9.runs[0].font.name = FONT_NAME
 p9.runs[0].font.size = Pt(13.5)
@@ -87,11 +87,26 @@ p16 = doc.paragraphs[16]
 p16.text = "Emilio Rafael Rojas Molinares"
 p16.runs[0].font.bold = False
 p16.runs[0].font.name = FONT_NAME
-p16.runs[0].font.size = Pt(12)
+p16.runs[0].font.size = Pt(11.5)
 p16.runs[0].font.color.rgb = BLACK
 
-for idx in [17, 18]:
-    doc.paragraphs[idx].text = ""
+p17 = doc.paragraphs[17]
+p17.text = "Francini Rocío"
+if len(p17.runs) == 0:
+    p17.add_run("Francini Rocío")
+p17.runs[0].font.bold = False
+p17.runs[0].font.name = FONT_NAME
+p17.runs[0].font.size = Pt(11.5)
+p17.runs[0].font.color.rgb = BLACK
+
+p18 = doc.paragraphs[18]
+p18.text = "Edmundo González"
+if len(p18.runs) == 0:
+    p18.add_run("Edmundo González")
+p18.runs[0].font.bold = False
+p18.runs[0].font.name = FONT_NAME
+p18.runs[0].font.size = Pt(11.5)
+p18.runs[0].font.color.rgb = BLACK
 
 p19 = doc.paragraphs[19]
 p19.text = "Revisado por:"
@@ -103,16 +118,17 @@ p20 = doc.paragraphs[20]
 p20.text = "Ing. Fimvark Guzmán Orozco"
 p20.runs[0].font.bold = False
 p20.runs[0].font.name = FONT_NAME
-p20.runs[0].font.size = Pt(12)
+p20.runs[0].font.size = Pt(11.5)
 p20.runs[0].font.color.rgb = BLACK
 
 for idx in [21, 22, 23, 24]:
     doc.paragraphs[idx].text = ""
 
 p25 = doc.paragraphs[25]
-p25.text = "León, Nicaragua — Octubre de 2026"
+p25.text = "4 de octubre de 2026"
 p25.runs[0].font.italic = True
 p25.runs[0].font.name = FONT_NAME
+p25.runs[0].font.size = Pt(11)
 p25.runs[0].font.color.rgb = BLACK
 
 # Encabezado institucional de páginas siguientes (100% negro)
@@ -453,6 +469,8 @@ add_body(
 # -------------------------------------------------------------
 # TAREA 1: RESTRICCIONES DE VELOCIDAD EN TIEMPO REAL
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading(
     "Tarea 1: Análisis de Restricciones de Velocidad en Tiempo Real",
     "Indagar y analizar por qué el proceso en tiempo real (en línea) requiere fases de preprocesamiento de imagen sumamente rápidas y ligeras a diferencia de un escaneo de documentos estáticos."
@@ -577,6 +595,8 @@ add_body(
 # -------------------------------------------------------------
 # TAREA 2: DIAGNÓSTICO DEL PROBLEMA
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading(
     "Tarea 2: Diagnóstico Detallado del Problema",
     "Explicar detalladamente por qué el sistema actual falló en eficiencia, escalabilidad y control de calidad."
@@ -639,6 +659,8 @@ add_body(
 # -------------------------------------------------------------
 # TAREA 3: PROPUESTA TECNOLÓGICA Y CÓMO SE IMPLEMENTARÍA
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading(
     "Tarea 3: Propuesta Tecnológica y Cómo se Implementaría",
     "Definir qué combinación de tecnologías se debe utilizar para resolver el problema y justificar por qué."
@@ -708,7 +730,28 @@ add_apa_figure(
     "Interfaz de la Aplicación de Control SCADA en Entorno de Escritorio - Caso Aprobado",
     "fig_desktop_aprobado.png",
     "Visualización panorámica mostrando el sensor óptico en vivo, etiqueta conforme, banner verde de APROBADO, telemetría y bitácora de auditoría.",
-    width_inches=5.6
+    width_inches=5.4
+)
+
+# Salto de página para que el Gemelo Digital 2D y su figura queden integrados limpiamente
+doc.add_page_break()
+
+add_subheading("Validación Cinemática Mediante Gemelo Digital 2D de la Línea y Pistón Neumático")
+add_body(
+    "Como fase previa y complementaria al montaje electromecánico en planta, se desarrolló un **Gemelo Digital 2D interactivo** "
+    "de la línea de empaque (Figura 7). Este entorno simula la cinemática continua de la cinta a **1.20 m/s (120 ppm)**, la interrupción del haz fotoeléctrico PNP, "
+    "el destello estroboscópico sincronizado de **500 μs** de la cámara CAM-01, la binarización de Otsu en tiempo real y la carrera de avance "
+    "del cilindro neumático guiado **FESTO DFM** en un tiempo de **12 ms**. La herramienta permite inyectar interactivamente las fallas "
+    "reales del caso (pines quemados, tinta borrosa, caducidades vencidas y arrugas plásticas con reflejo especular), verificando que el actuador "
+    "descarte físicamente las piezas defectuosas hacia la tolva de merma con un margen de seguridad temporal de **4.05 veces** frente al tiempo de tránsito de 708 ms."
+)
+
+add_apa_figure(
+    "7",
+    "Gemelo Digital 2D: Simulación Cinemática de la Cinta Transportadora y Pistón Neumático FESTO DFM",
+    "fig_simulador_2d.png",
+    "Entorno interactivo 2D donde se modela la cinemática continua a 1.2 m/s, la captura estroboscópica por la cámara CAM-01, la binarización en tiempo real y la expulsión lateral de paquetes con defectos hacia la tolva de mermas.",
+    width_inches=5.4
 )
 
 # -------------------------------------------------------------
@@ -727,32 +770,36 @@ add_body(
     "las cinco evaluaciones lógicas booleanas y las acciones físicas finales:"
 )
 
-# Figura 7: Diagrama de Flujo Original Exacto
+# Figura 8: Diagrama de Flujo Original Exacto en una sola página completa
 add_apa_figure(
-    "7",
+    "8",
     "Diagrama de Flujo del Proceso Automatizado de Inspección y Decisión Industrial",
     "fig_diagrama_flujo_original.png",
     "Secuencia determinista original con las bifurcaciones de validación (KMB, longitud >= 10 caracteres, legibilidad de fecha, fecha vencida y confianza >= 60%) "
     "conduciendo a los estados finales de Producto Aprobado o Activación de Señal de Rechazo a 24V hacia el brazo neumático.",
-    width_inches=3.4
+    width_inches=2.15
 )
 
+# Salto de página para que el diagrama de flujo quede enmarcado en su propia página exclusiva sin cortes
+doc.add_page_break()
+
+add_subheading("Análisis de Inferencia Neuronal (LSTM) y Extracción de Bounding Boxes")
 add_body(
-    "Para profundizar en el funcionamiento interno del clasificador neuronal, la Figura 8 desglosa la extracción a nivel de Bounding Boxes individuales "
+    "Para profundizar en el funcionamiento interno del clasificador neuronal, la Figura 9 desglosa la extracción a nivel de Bounding Boxes individuales "
     "y la distribución Softmax de probabilidades, contrastando el caso de una etiqueta conforme frente al colapso de confianza provocado por la falla de cabezal:"
 )
 
-# Figura 8: Análisis OCR Bounding Boxes
+# Figura 9: Análisis OCR Bounding Boxes
 add_apa_figure(
-    "8",
+    "9",
     "Análisis de Segmentación e Inferencia Neuronal OCR (LSTM) - Conforme vs. Falla en Cabezal Térmico",
     "fig_analisis_ocr_caracteres.png",
     "Desglose de Bounding Boxes individuales y vector de probabilidades Softmax: en la etiqueta conforme la confianza media alcanza 96.2%; en la falla térmica la ruptura de trazos provoca un colapso al 36.4%, disparando el descarte.",
-    width_inches=5.6
+    width_inches=5.4
 )
 
 add_body(
-    "El flujo lógico detallado en las Figuras 7 y 8 se ejecuta siguiendo la siguiente secuencia de pasos operativos:"
+    "El flujo lógico detallado en las Figuras 8 y 9 se ejecuta siguiendo la siguiente secuencia de pasos operativos:"
 )
 
 add_bullet("1. Detección Física por Sensor Infrarrojo", "El empaque corta el haz fotoeléctrico, generando el flanco de subida que inicia el ciclo de inspección.")
@@ -775,21 +822,24 @@ t2_rows = [
 add_apa_table("2", "Matriz de Decisión Lógica del Algoritmo de Calidad Kimby", t2_headers, t2_rows, "Criterios booleanos aplicados a cada fotograma capturado.")
 
 add_body(
-    "En la Figura 9 se aprecia la respuesta inmediata de la interfaz ante un caso de producto rechazado por caracteres borrosos, mostrando la activación "
+    "En la Figura 10 se aprecia la respuesta inmediata de la interfaz ante un caso de producto rechazado por caracteres borrosos, mostrando la activación "
     "de la señal PLC de 24V y la alarma sonora en planta:"
 )
 
+# Figura 10: Interfaz SCADA Rechazado
 add_apa_figure(
-    "9",
+    "10",
     "Interfaz de Control SCADA ante Detección de Falla y Accionamiento del Actuador Neumático",
     "fig_desktop_rechazado.png",
     "Banner rojo de DESCARTADO, señal de disparo PLC a 24V hacia la electroválvula del actuador neumático y registro del incidente en bitácora.",
-    width_inches=5.6
+    width_inches=5.4
 )
 
 # -------------------------------------------------------------
 # TAREA 5: MITIGACIÓN DE ERRORES Y CALIBRACIÓN DE UMBRALES
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading(
     "Tarea 5: Mitigación de Errores y Calibración de Umbrales",
     "¿Qué sucede si el sistema confunde un dígito debido a una arruga en la etiqueta y rechaza un producto bueno, o peor aún, acepta uno malo? ¿Cómo se ajustarán los niveles de tolerancia o umbrales de confianza?"
@@ -826,10 +876,10 @@ add_bullet(
 add_subheading("Política de Calidad y Formulación Matemática de los Umbrales")
 add_body(
     "Dada la asimetría de costos, la empresa adopta una política estricta de **'Cero Tolerancia Sanitaria'**: se asume una tasa de falsos rechazos de 0.2% en tolva "
-    "antes que permitir un solo escape defectuoso al mercado. El índice de confianza global de la cadena se calcula según la Ecuación 3:"
+    "antes que permitir un solo escape defectuoso al mercado. El índice de confianza global de la cadena se calcula según la Ecuación 5:"
 )
 
-# Ecuación 3 OMML (Confianza Global)
+# Ecuación 5 OMML (Confianza Global)
 eq_conf_omml = (
     '<m:sSub><m:e><m:r><m:t>C</m:t></m:r></m:e><m:sub><m:r><m:t>global</m:t></m:r></m:sub></m:sSub><m:r><m:t> = </m:t></m:r>'
     '<m:f><m:num><m:r><m:t>1</m:t></m:r></m:num><m:den><m:r><m:t>N</m:t></m:r></m:den></m:f><m:r><m:t> </m:t></m:r>'
@@ -840,47 +890,49 @@ eq_conf_omml = (
 add_apa_equation(eq_conf_omml, "5")
 
 add_body(
-    "Donde **c_i** es la probabilidad Softmax de cada carácter y **N** es la longitud de la cadena. El sistema exige simultáneamente dos condiciones: "
+    "Donde **c_i** es la probabilidad Softmax de cada carácter individual y **N** es la longitud de la cadena. El sistema exige simultáneamente dos condiciones: "
     "1) **C_global ≥ 60%**; y 2) **Consistencia Sintáctica al 100%**: el prefijo corporativo 'KMB' debe ser identificado inequívocamente y la fecha de vencimiento "
     "debe validar la expresión regular DD/MM/AAAA y ser estrictamente posterior al día de fabricación. Si un pliegue plástico baja la confianza de un dígito por debajo del 50%, "
     "el producto se descarta de forma segura hacia la tolva."
 )
 
 add_body(
-    "Las Figuras 10 y 11 exhiben la implementación de la aplicación en dispositivos móviles Android Chrome, mostrando la captura del sensor y la alarma de rechazo:"
-)
-
-add_apa_figure(
-    "10",
-    "Interfaz Móvil en Android Chrome - Sección de Sensor Óptico y Encuadre Completo",
-    "fig_mobile_pantalla1_sensor.png",
-    "Captura íntegra sin cortes laterales en pantalla de teléfono móvil, demostrando el encuadre exacto del empaque Kimby y controles táctiles.",
-    width_inches=3.0
+    "Las Figuras 11 y 12 exhiben la implementación de la aplicación en dispositivos móviles Android Chrome, mostrando la captura del sensor y la alarma de rechazo:"
 )
 
 add_apa_figure(
     "11",
-    "Interfaz Móvil en Android Chrome - Notificación de Rechazo y Disparo Neumático",
-    "fig_mobile_pantalla2_rechazo.png",
-    "Pantalla móvil mostrando el banner de rechazo por texto borroso, activación de disparo al pistón neumático y registro de auditoría.",
-    width_inches=3.0
-)
-
-add_body(
-    "Por último, la Figura 12 muestra el Estudio Web Interactivo (`generador.html`) programado para simular fallas térmicas y deformaciones plásticas:"
+    "Interfaz Móvil en Android Chrome - Sección de Sensor Óptico y Encuadre Completo",
+    "fig_mobile_pantalla1_sensor.png",
+    "Captura íntegra sin cortes laterales en pantalla de teléfono móvil, demostrando el encuadre exacto del empaque Kimby y controles táctiles.",
+    width_inches=2.9
 )
 
 add_apa_figure(
     "12",
+    "Interfaz Móvil en Android Chrome - Notificación de Rechazo y Disparo Neumático",
+    "fig_mobile_pantalla2_rechazo.png",
+    "Pantalla móvil mostrando el banner de rechazo por texto borroso, activación de disparo al pistón neumático y registro de auditoría.",
+    width_inches=2.9
+)
+
+add_body(
+    "Por último, la Figura 13 muestra el Estudio Web Interactivo (`generador.html`) programado para simular fallas térmicas y deformaciones plásticas:"
+)
+
+add_apa_figure(
+    "13",
     "Estudio Web y Generador de Etiquetas Interactivo para Simulación Industrial",
     "fig_generador_estudio.png",
     "Panel de control para generar variantes de etiquetas Kimby, ajustar sliders de desenfoque, pérdida de pines y arrugas para pruebas físicas y modelado 3D.",
-    width_inches=5.6
+    width_inches=5.4
 )
 
 # -------------------------------------------------------------
 # CONCLUSIONES
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading("Conclusiones")
 
 add_body(
@@ -896,10 +948,15 @@ add_body(
     "3. La política de calidad de **Cero Tolerancia Sanitaria** y la fijación del umbral de confianza global en C_global ≥ 60% garantizan que ningún producto con fecha caducada "
     "o borrosa alcance los supermercados, blindando a la empresa frente a sanciones legales y multas de salud pública."
 )
+add_body(
+    "4. La integración y modelado cinemático mediante el **Gemelo Digital 2D interactivo** de la línea de empaque y el actuador neumático FESTO DFM permitió verificar previamente al montaje físico el factor de seguridad temporal (4.05 veces mayor a los 175 ms de latencia), validando la sincronización estroboscópica y la expulsión lateral de mermas a 1.2 m/s."
+)
 
 # -------------------------------------------------------------
 # REFERENCIAS BIBLIOGRÁFICAS APA 7
 # -------------------------------------------------------------
+doc.add_page_break()
+
 add_task_heading("Referencias")
 
 def add_apa_reference(ref_text):
@@ -926,9 +983,20 @@ print(f"[4/5] Guardando archivo Word final en: {FINAL_DOCX}...")
 doc.save(FINAL_DOCX)
 print("¡Documento DOCX generado exitosamente!")
 
-# 5. Convertir a PDF utilizando docx2pdf
+# 5. Convertir a PDF institucionalmente con Word COM (DisplayAlerts=0)
 print(f"[5/5] Convirtiendo a PDF institucional en: {FINAL_PDF}...")
-convert(FINAL_DOCX, FINAL_PDF)
+try:
+    import win32com.client
+    word = win32com.client.DispatchEx("Word.Application")
+    word.Visible = False
+    word.DisplayAlerts = 0 # Suprimir alertas y cuadros de recuperación
+    doc_word = word.Documents.Open(FINAL_DOCX, ReadOnly=True)
+    doc_word.SaveAs(FINAL_PDF, FileFormat=17) # 17 = wdFormatPDF
+    doc_word.Close(False)
+    word.Quit()
+except Exception as e:
+    print(f"Aviso en Word COM: {e}. Intentando convert()...")
+    convert(FINAL_DOCX, FINAL_PDF)
 
 if os.path.exists(FINAL_PDF):
     size_mb = os.path.getsize(FINAL_PDF) / (1024 * 1024)

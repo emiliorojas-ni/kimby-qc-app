@@ -11,7 +11,7 @@ class QCOCREngine {
         // Default Production Baseline (Base de datos activa)
         this.expectedLote = 'KMB-2026-A01';
         this.expectedVenc = '15/12/2026';
-        this.minConfidence = 65; // % mínimo para fotos de smartphone (calibrable en UI)
+        this.minConfidence = 50; // % mínimo calibrado para fotos de smartphone en papel físico (ajustable en UI)
         
         // Validation Mode:
         // 'flexible' -> Verifica que la etiqueta sea legible, tenga lote y fecha válida NO vencida (ideal para cualquier producto real).
@@ -30,9 +30,9 @@ class QCOCREngine {
                     logger: m => console.log('Tesseract:', m.status, m.progress ? Math.round(m.progress * 100) + '%' : '')
                 });
 
-                // Configure character whitelist for thermal dot-matrix code
+                // Configure character whitelist for packaging labels (letters, numbers and delimiters)
                 await this.worker.setParameters({
-                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ/:.- '
+                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/:.- '
                 });
 
                 this.isReady = true;
@@ -59,41 +59,43 @@ class QCOCREngine {
         this.validationMode = mode;
     }
 
+    // Helper to run a single OCR pass on a canvas
+    async _runSinglePass(canvas) {
+        if (!this.isReady || !this.worker) {
+            return { rawText: '', confidence: 0 };
+        }
+        try {
+            const res = await this.worker.recognize(canvas);
+            const rawText = res.data.text || '';
+            const lines = res.data.lines || [];
+            const matchedLines = lines.filter(l => {
+                const t = l.text.toUpperCase();
+                return t.includes('LOTE') || t.includes('KMB') || t.includes('KM8') ||
+                       t.includes('VENC') || t.includes('CAD') || t.includes('EXP') ||
+                       /\b\d{1,2}[\/\.\- ]\d{1,2}[\/\.\- ]\d{2,4}\b/.test(t);
+            });
+
+            let confidence = 0;
+            if (matchedLines.length > 0) {
+                const sum = matchedLines.reduce((acc, l) => acc + (l.confidence || 0), 0);
+                confidence = Math.round(sum / matchedLines.length);
+            } else {
+                confidence = Math.round(res.data.confidence || 0);
+            }
+            return { rawText, confidence };
+        } catch (e) {
+            console.warn('Tesseract recognition error:', e);
+            return { rawText: '', confidence: 0 };
+        }
+    }
+
     async recognize(imageCanvas, sourceSample = null) {
-        let rawText = '';
-        let confidence = 0;
         const t0 = performance.now();
 
-        if (this.isReady && this.worker) {
-            try {
-                const res = await this.worker.recognize(imageCanvas);
-                rawText = res.data.text || '';
-                
-                // Extract lines that contain LOTE or VENC/CAD/EXP to compute true target confidence
-                const lines = res.data.lines || [];
-                const matchedLines = lines.filter(l => {
-                    const t = l.text.toUpperCase();
-                    return t.includes('LOTE') || t.includes('KMB') || t.includes('VENC') || 
-                           t.includes('CAD') || t.includes('EXP') || t.includes('LOT') ||
-                           /\b\d{1,2}[\/\.\-]\d{1,2}[\/\.\-]\d{2,4}\b/.test(t);
-                });
-
-                if (matchedLines.length > 0) {
-                    const sum = matchedLines.reduce((acc, l) => acc + (l.confidence || 0), 0);
-                    confidence = Math.round(sum / matchedLines.length);
-                } else {
-                    confidence = Math.round(res.data.confidence || 0);
-                }
-            } catch (e) {
-                console.warn('Tesseract recognition error:', e);
-            }
-        }
-
-        const t1 = performance.now();
-        const inferenceTimeMs = Math.round(t1 - t0);
-
-        // If OCR didn't catch text and we have a synthetic sample
-        if (!rawText.trim() && sourceSample) {
+        // Synthetic sample simulation bypass
+        if (sourceSample) {
+            let rawText = '';
+            let confidence = 0;
             if (sourceSample.id === 'sample_ok') {
                 rawText = `${sourceSample.loteText}\n${sourceSample.vencText}`;
                 confidence = 96;
@@ -107,28 +109,96 @@ class QCOCREngine {
                 rawText = 'LOTE: KMB-????\nVENC: 15/?2/2?26';
                 confidence = 61;
             }
+            const parsed = this.parseKimbyLabel(rawText);
+            const evaluation = this.evaluateRules(parsed, confidence, sourceSample);
+            return {
+                rawText,
+                confidence,
+                detectedLote: parsed.lote,
+                detectedVenc: parsed.venc,
+                evaluation,
+                inferenceTimeMs: Math.round(performance.now() - t0),
+                engine: 'Banco de Muestras Kimby'
+            };
         }
 
-        // Parse extracted values
-        const parsed = this.parseKimbyLabel(rawText);
+        // Real Camera / Uploaded Photo Pipeline:
+        // Try orientations [0°, 90°, 270°, 180°] automatically so that vertical/horizontal/upside-down
+        // mobile captures are detected instantly without user struggle!
+        const orientations = [0, 90, 270, 180];
+        let bestCandidate = null;
 
-        // Evaluation against Quality Control Rules
-        const evaluation = this.evaluateRules(parsed, confidence, sourceSample);
+        for (const angle of orientations) {
+            let passCanvas = imageCanvas;
+            if (angle !== 0 && window.visionProcessor && window.visionProcessor.rotateCanvas) {
+                passCanvas = window.visionProcessor.rotateCanvas(imageCanvas, angle);
+            }
+
+            const { rawText, confidence } = await this._runSinglePass(passCanvas);
+            const parsed = this.parseKimbyLabel(rawText);
+
+            const candidate = {
+                rawText,
+                confidence,
+                detectedLote: parsed.lote,
+                detectedVenc: parsed.venc,
+                parsed,
+                angle
+            };
+
+            // If we detected BOTH the KMB Lot and a Date, we found the optimal orientation!
+            if (parsed.hasKMB && parsed.kmbComplete && parsed.venc) {
+                bestCandidate = candidate;
+                break;
+            }
+
+            // Otherwise, keep the best candidate with highest feature count or confidence
+            if (!bestCandidate) {
+                bestCandidate = candidate;
+            } else {
+                const curScore = (parsed.hasKMB ? 2 : 0) + (parsed.venc ? 2 : 0) + (parsed.kmbComplete ? 1 : 0);
+                const bestScore = (bestCandidate.parsed.hasKMB ? 2 : 0) + (bestCandidate.parsed.venc ? 2 : 0) + (bestCandidate.parsed.kmbComplete ? 1 : 0);
+                if (curScore > bestScore || (curScore === bestScore && confidence > bestCandidate.confidence)) {
+                    bestCandidate = candidate;
+                }
+            }
+        }
+
+        const t1 = performance.now();
+        const inferenceTimeMs = Math.round(t1 - t0);
+
+        // Evaluate against Quality Control Rules
+        const evaluation = this.evaluateRules(bestCandidate.parsed, bestCandidate.confidence, null);
+
+        const angleStr = bestCandidate.angle !== 0 ? ` [Orientación ${bestCandidate.angle}°]` : '';
 
         return {
-            rawText,
-            confidence,
-            detectedLote: parsed.lote,
-            detectedVenc: parsed.venc,
+            rawText: bestCandidate.rawText,
+            confidence: bestCandidate.confidence,
+            detectedLote: bestCandidate.detectedLote,
+            detectedVenc: bestCandidate.detectedVenc,
             evaluation,
             inferenceTimeMs,
-            engine: this.isReady ? 'Tesseract.js v5 (Wasm LSTM)' : 'Heuristic Engine'
+            engine: this.isReady ? `Tesseract.js v5 LSTM${angleStr}` : 'Heuristic Engine'
         };
     }
 
     parseKimbyLabel(text) {
         if (!text) return { lote: null, venc: null, hasKMB: false, kmbComplete: false };
-        const clean = text.toUpperCase();
+        let clean = text.toUpperCase();
+
+        // Normalizaciones inteligentes para impresión en papel físico y fuentes térmicas:
+        // 1. Confusiones térmicas comunes: 'B' leído como '8' o 'D' o 'R' en el prefijo KMB
+        clean = clean.replace(/\b(KM[8BDR]|KH[B8]|KN[B8])\s*[-_./ ]?\s*([0-9O]{4})/g, 'KMB-$2');
+        clean = clean.replace(/\bKM8\b/g, 'KMB');
+        clean = clean.replace(/\bL[0O]TE\b/g, 'LOTE');
+        clean = clean.replace(/\bV[E3]N[CGT]\b/g, 'VENC');
+
+        // 2. Normalizar fechas con espacios entre barras o puntos (ej. 15 / 12 / 2026 o 15 . 12 . 2026)
+        clean = clean.replace(/(\d{1,2})\s*[\/\.\-]\s*(\d{1,2})\s*[\/\.\-]\s*([0-9O]{2,4})/g, (m, d, mo, y) => {
+            const yr = y.replace(/O/g, '0');
+            return `${d.padStart(2, '0')}/${mo.padStart(2, '0')}/${yr}`;
+        });
 
         // 1. Extraer LOTE Kimby y verificar estructura
         let lote = null;
@@ -136,13 +206,13 @@ class QCOCREngine {
         let kmbComplete = false;
 
         // Patrón A: KMB con año y código (ej. KMB-2026-A01, KMB 2026 A01, KMB-2026A01)
-        const kmbPattern = /\bKMB\s*[-_./ ]?\s*([0-9]{4})\s*[-_./ ]?\s*([A-Z0-9]{2,6})\b/;
+        const kmbPattern = /\bKMB\s*[-_./ ]?\s*([0-9O]{4})\s*[-_./ ]?\s*([A-Z0-9]{2,6})\b/;
         const kmbMatch = clean.match(kmbPattern);
 
         if (kmbMatch) {
             hasKMB = true;
-            lote = `KMB-${kmbMatch[1]}-${kmbMatch[2]}`;
-            // Longitud estándar completa: KMB-YYYY-XX (mínimo 10-12 caracteres)
+            const yearClean = kmbMatch[1].replace(/O/g, '0');
+            lote = `KMB-${yearClean}-${kmbMatch[2]}`;
             if (lote.length >= 10) {
                 kmbComplete = true;
             }
@@ -217,7 +287,7 @@ class QCOCREngine {
         if (parts.length === 3) {
             const d = parts[0].padStart(2, '0');
             const m = parts[1].padStart(2, '0');
-            let y = parts[2];
+            let y = parts[2].replace(/O/g, '0');
             if (y.length === 2) y = '20' + y;
             return `${d}/${m}/${y}`;
         }
@@ -248,7 +318,7 @@ class QCOCREngine {
         // 3. "Pero mientras sea legible y el OCR la detecte, la dejas"
         // =========================================================================
 
-        // Verificación A: ¿No se lee el 'KMB' o está incompleto?
+        // Verificación A: ¿No se lee el 'KMB' o está ausente?
         if (!hasKmb) {
             return {
                 status: 'REJECTED',
@@ -282,17 +352,6 @@ class QCOCREngine {
             };
         }
 
-        // Verificación D: Umbral mínimo de confianza global (si el texto está excesivamente borroso)
-        if (confidence < this.minConfidence) {
-            return {
-                status: 'REJECTED',
-                reasonCode: 'LOW_CONFIDENCE',
-                reasonMsg: `RECHAZADO: Legibilidad global del ${confidence}%, inferior al umbral mínimo (${this.minConfidence}%). Tinta desvanecida.`,
-                pneumaticSignal: true,
-                severity: 'HIGH'
-            };
-        }
-
         // Verificación E: Si la fecha está en el pasado (caducada)
         const parts = parsed.venc.split('/');
         if (parts.length === 3) {
@@ -312,6 +371,28 @@ class QCOCREngine {
                     severity: 'CRITICAL'
                 };
             }
+        }
+
+        // Verificación D: Umbral mínimo de confianza global (si el texto está excesivamente borroso)
+        if (confidence < this.minConfidence) {
+            // Tolerancia para papel físico real impreso con celular:
+            // Si el KMB está completo y la fecha es válida y vigente, y la confianza es >= 38%:
+            if (hasKmb && isKmbComplete && hasVenc && confidence >= 38) {
+                return {
+                    status: 'APPROVED',
+                    reasonCode: 'CONFORMING_PHYSICAL_PAPER',
+                    reasonMsg: `APROBADO: Lote [${parsed.lote}] y Caducidad [${parsed.venc}] validados en papel físico (Legibilidad: ${confidence}%).`,
+                    pneumaticSignal: false,
+                    severity: 'NORMAL'
+                };
+            }
+            return {
+                status: 'REJECTED',
+                reasonCode: 'LOW_CONFIDENCE',
+                reasonMsg: `RECHAZADO: Legibilidad global del ${confidence}%, inferior al umbral mínimo (${this.minConfidence}%). Tinta desvanecida o borrosa.`,
+                pneumaticSignal: true,
+                severity: 'HIGH'
+            };
         }
 
         // =========================================================================

@@ -1,5 +1,5 @@
-// Vision Preprocessing Module for In-Line Industrial Packaging
-// Prepares video frames or photos for fast, accurate OCR on shiny plastic films.
+// Vision Preprocessing Module for In-Line Industrial Packaging & Real-World Camera Photos
+// Prepares video frames, smartphone captures, and physical printed labels for robust OCR.
 
 class VisionProcessor {
     constructor() {
@@ -7,8 +7,31 @@ class VisionProcessor {
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
     }
 
+    // Helper to rotate a canvas by 90, 180, or 270 degrees
+    rotateCanvas(sourceCanvas, degrees) {
+        const rad = (degrees * Math.PI) / 180;
+        const rotated = document.createElement('canvas');
+        const rCtx = rotated.getContext('2d', { willReadFrequently: true });
+
+        if (degrees === 90 || degrees === 270) {
+            rotated.width = sourceCanvas.height;
+            rotated.height = sourceCanvas.width;
+        } else {
+            rotated.width = sourceCanvas.width;
+            rotated.height = sourceCanvas.height;
+        }
+
+        rCtx.save();
+        rCtx.translate(rotated.width / 2, rotated.height / 2);
+        rCtx.rotate(rad);
+        rCtx.drawImage(sourceCanvas, -sourceCanvas.width / 2, -sourceCanvas.height / 2);
+        rCtx.restore();
+
+        return rotated;
+    }
+
     // Process an image source (Image, Video, Canvas) into a preprocessed canvas
-    process(source, mode = 'binarized', roi = null) {
+    process(source, mode = 'contrast', roi = null) {
         let sw = source.videoWidth || source.naturalWidth || source.width;
         let sh = source.videoHeight || source.naturalHeight || source.height;
 
@@ -17,7 +40,7 @@ class VisionProcessor {
             return null;
         }
 
-        // If ROI is defined (normalized 0-1 coords: {x, y, w, h})
+        // 1. Calculate ROI in original coordinates
         let sx = 0, sy = 0, sWidth = sw, sHeight = sh;
         if (roi) {
             sx = Math.round(roi.x * sw);
@@ -26,33 +49,66 @@ class VisionProcessor {
             sHeight = Math.round(roi.h * sh);
         }
 
-        // Resize canvas to ROI
-        this.canvas.width = sWidth;
-        this.canvas.height = sHeight;
+        // 2. Intelligent Auto-Scaling:
+        // High-res phone captures (3000-4000px) degrade OCR accuracy (character height > 150px)
+        // and cause memory pressure. Scale down to optimal sweet spot (max 1400px).
+        const maxDim = 1400;
+        let scale = 1;
+        if (Math.max(sWidth, sHeight) > maxDim) {
+            scale = maxDim / Math.max(sWidth, sHeight);
+        }
+        const destW = Math.round(sWidth * scale);
+        const destH = Math.round(sHeight * scale);
 
-        // Draw source to canvas
-        this.ctx.drawImage(source, sx, sy, sWidth, sHeight, 0, 0, sWidth, sHeight);
+        this.canvas.width = destW;
+        this.canvas.height = destH;
+
+        // Draw and scale to destination canvas
+        this.ctx.drawImage(source, sx, sy, sWidth, sHeight, 0, 0, destW, destH);
 
         if (mode === 'original') {
             return this.canvas;
         }
 
-        const imgData = this.ctx.getImageData(0, 0, sWidth, sHeight);
+        const imgData = this.ctx.getImageData(0, 0, destW, destH);
         const data = imgData.data;
-        const totalPixels = sWidth * sHeight;
+        const totalPixels = destW * destH;
 
-        // 1. Grayscale conversion + find min/max for auto-contrast
-        let minL = 255;
-        let maxL = 0;
+        // 3. Grayscale conversion + Histogram for Percentile Contrast Stretching
         const gray = new Uint8Array(totalPixels);
+        const hist = new Int32Array(256);
 
         for (let i = 0; i < totalPixels; i++) {
             const idx = i * 4;
             // Standard luminance weights
             const lum = Math.round(0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]);
             gray[i] = lum;
-            if (lum < minL) minL = lum;
-            if (lum > maxL) maxL = lum;
+            hist[lum]++;
+        }
+
+        // Robust percentile boundaries (2% and 98%) to eliminate hot glare and deep shadows
+        let p2 = 0, p98 = 255;
+        const targetP2 = totalPixels * 0.02;
+        const targetP98 = totalPixels * 0.98;
+        let cum = 0;
+        for (let t = 0; t < 256; t++) {
+            cum += hist[t];
+            if (cum >= targetP2 && p2 === 0) p2 = t;
+            if (cum >= targetP98) {
+                p98 = t;
+                break;
+            }
+        }
+        if (p98 <= p2) {
+            p2 = 0;
+            p98 = 255;
+        }
+
+        const range = p98 - p2 || 1;
+        const contrast = new Uint8Array(totalPixels);
+        for (let i = 0; i < totalPixels; i++) {
+            const val = ((gray[i] - p2) / range) * 255;
+            contrast[i] = Math.min(255, Math.max(0, Math.round(val)));
         }
 
         if (mode === 'grayscale') {
@@ -67,14 +123,8 @@ class VisionProcessor {
             return this.canvas;
         }
 
-        // 2. Contrast Stretching / Normalization (Crucial for eliminating plastic glare)
-        const range = maxL - minL || 1;
-        const contrast = new Uint8Array(totalPixels);
-        for (let i = 0; i < totalPixels; i++) {
-            contrast[i] = Math.min(255, Math.max(0, Math.round(((gray[i] - minL) / range) * 255)));
-        }
-
         if (mode === 'contrast') {
+            // High-Contrast Grayscale (Optimal for Tesseract LSTM Engine on Real Paper)
             for (let i = 0; i < totalPixels; i++) {
                 const idx = i * 4;
                 const c = contrast[i];
@@ -86,29 +136,27 @@ class VisionProcessor {
             return this.canvas;
         }
 
-        // 3. Fast Otsu-like Global Threshold Binarization
-        // Computes histogram
-        const histogram = new Int32Array(256);
+        // 4. Otsu Global Threshold Binarization
+        const contrastHist = new Int32Array(256);
         for (let i = 0; i < totalPixels; i++) {
-            histogram[contrast[i]]++;
+            contrastHist[contrast[i]]++;
         }
 
         let sum = 0;
-        for (let t = 0; t < 256; t++) sum += t * histogram[t];
+        for (let t = 0; t < 256; t++) sum += t * contrastHist[t];
 
         let sumB = 0;
         let wB = 0;
-        let wF = 0;
         let varMax = 0;
         let threshold = 128;
 
         for (let t = 0; t < 256; t++) {
-            wB += histogram[t];
+            wB += contrastHist[t];
             if (wB === 0) continue;
-            wF = totalPixels - wB;
+            const wF = totalPixels - wB;
             if (wF === 0) break;
 
-            sumB += t * histogram[t];
+            sumB += t * contrastHist[t];
             const mB = sumB / wB;
             const mF = (sum - sumB) / wF;
 
@@ -119,7 +167,7 @@ class VisionProcessor {
             }
         }
 
-        // Apply thresholding (Text is dark on light background -> make text 0/black, background 255/white)
+        // Apply thresholding (Dark text on light background -> text 0, background 255)
         for (let i = 0; i < totalPixels; i++) {
             const idx = i * 4;
             const val = contrast[i] < threshold ? 0 : 255;
@@ -135,3 +183,4 @@ class VisionProcessor {
 }
 
 window.visionProcessor = new VisionProcessor();
+
