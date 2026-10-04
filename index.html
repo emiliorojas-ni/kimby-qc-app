@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#dc2626">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Embutidos Kimby - Control de Calidad OCR en Línea</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/style.css?v=20261002_03">
+    <!-- Tesseract.js CDN for Client-Side OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+    <!-- Red Strobe Flash on Product Rejection -->
+    <div id="strobeAlert"></div>
+
+    <!-- Header / Top Bar -->
+    <header class="app-header">
+        <div class="brand-wrapper">
+            <div class="brand-icon">🏭</div>
+            <div class="brand-text">
+                <h1>EMBUTIDOS KIMBY</h1>
+                <span>Control de Calidad & Trazabilidad (Línea 02)</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <a href="generador.html" class="btn btn-sm btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; font-weight: bold; background: #f59e0b; color: #78350f;">🎨 Generador Etiquetas (Blender / Físico)</a>
+            <a href="plantilla_estandar.html" class="btn btn-sm" style="text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background: #334155; color: white;">📐 Plantillas</a>
+            <div class="system-status">
+                <div class="live-dot"></div>
+                <span>SISTEMA EN LÍNEA</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+
+        <!-- Column 1: Camera, Preprocessing & Controls -->
+        <section class="left-col">
+
+            <!-- Card: Video / Camera Viewport -->
+            <div class="card">
+                <div class="card-title">
+                    <span>📹</span> Sensor Óptico de Inspección
+                </div>
+
+                <div class="viewport-wrapper">
+                    <video id="cameraFeed" playsinline autoplay muted style="display: none;"></video>
+                    <canvas id="rawPreviewCanvas"></canvas>
+                    <div id="cameraPlaceholder" class="camera-placeholder" style="display: none;">
+                        <svg viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 3a5 5 0 0 0-5 5 5 5 0 0 0 5 5 5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 2a3 3 0 0 1 3 3 3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3Z"/></svg>
+                        <p>Cámara inactiva. Seleccione una opción para iniciar.</p>
+                    </div>
+                </div>
+
+                <div class="viewport-controls">
+                    <button id="btnStartCamera" class="btn btn-primary btn-sm">▶ Iniciar Cámara</button>
+                    <button id="btnStopCamera" class="btn btn-danger btn-sm" style="display: none;">⏹ Detener</button>
+                    <button id="btnCapture" class="btn btn-success btn-sm" disabled>📸 Capturar Frame</button>
+                    <button id="btnUpload" class="btn btn-sm">📁 Tomar / Subir Foto</button>
+                    <input type="file" id="fileInput" accept="image/*" capture="environment" style="display: none;">
+                </div>
+
+                <!-- Link to Standard Test Templates -->
+                <div style="margin-top: 10px;">
+                    <a href="plantilla_estandar.html" target="_blank" class="btn btn-block btn-sm" style="background: #0284c7; color: white; text-decoration: none;">
+                        📄 Ver / Imprimir Plantilla Estándar Kimby
+                    </a>
+                </div>
+
+                <!-- Synthetic Samples for Rapid Testing (Collapsible for Mobile Convenience) -->
+                <details style="margin-top: 10px; background: #131d2e; border: 1px solid #1e3a5f; border-radius: 8px; padding: 8px 10px;">
+                    <summary style="font-size: 0.82rem; font-weight: 700; color: var(--cyan-accent); cursor: pointer; user-select: none;">
+                        🧪 Banco de Muestras Kimby (Clic para desplegar)
+                    </summary>
+                    <div id="sampleButtons" class="sample-chips-grid" style="margin-top: 6px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </details>
+
+                <!-- Preprocessing Vision Pipeline Filter (Collapsible) -->
+                <details style="margin-top: 8px; background: #111827; border: 1px dashed #374151; border-radius: 8px; padding: 8px 10px;">
+                    <summary style="font-size: 0.8rem; font-weight: 600; color: #94a3b8; cursor: pointer; user-select: none;">
+                        🔬 Filtros de Visión y Encuadre
+                    </summary>
+                    <div class="preproc-container" style="border: none; padding: 4px 0 0 0; margin-top: 4px;">
+                        <div class="preproc-header">
+                            <strong>Filtro:</strong>
+                            <select id="filterSelect" class="form-input" style="width: auto; padding: 2px 6px; font-size: 0.75rem;">
+                                <option value="binarized">Binarización Otsu (Recomendado)</option>
+                                <option value="contrast">Contraste Alto (Filtro Reflejos)</option>
+                                <option value="grayscale">Escala de Grises</option>
+                                <option value="original">Original Sin Filtro</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+                            <span style="font-size: 0.75rem; color: #94a3b8;">Encuadre:</span>
+                            <select id="roiSelect" class="form-input" style="padding: 2px 6px; font-size: 0.75rem;">
+                                <option value="full" selected>Foto Completa (Buscar en todo el empaque)</option>
+                                <option value="roi">Encuadre Central (Caja verde ROI)</option>
+                            </select>
+                        </div>
+                        <canvas id="processedPreviewCanvas"></canvas>
+                        <span style="font-size: 0.7rem; color: #94a3b8;">
+                            * Reduce brillo del film plástico y resalta la tinta térmica en microsegundos.
+                        </span>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Card: Reglas de Inspección Activa -->
+            <div class="card" style="margin-top: 16px;">
+                <div class="card-title">
+                    <span>⚙</span> Regla de Control de Calidad
+                </div>
+                <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.5; margin-bottom: 12px; background: #0f172a; padding: 10px; border-radius: 6px; border: 1px solid #334155;">
+                    <strong style="color: #38bdf8;">Condición de Inspección:</strong><br>
+                    • <span style="color: #10b981; font-weight: bold;">✔ Aprobado:</span> Se lee <strong style="color: #fff;">KMB</strong>, el resto del código está completo (≥10 caracteres) y la caducidad es legible y vigente.<br>
+                    • <span style="color: #ef4444; font-weight: bold;">✖ Descartado:</span> Si no se lee KMB, faltan caracteres, la fecha es ilegible o está vencida.
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label for="cfgThreshold">Sensibilidad OCR (Umbral Mínimo): <span id="thresholdValDisplay" style="color: var(--cyan-accent); font-weight: bold;">60%</span></label>
+                    <input type="range" id="cfgThreshold" min="30" max="90" value="60" style="width: 100%;">
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Column 2: Decision Banner, Actuator & Statistics -->
+        <section class="right-col">
+
+            <!-- Decision Status Banner -->
+            <div id="statusBanner" class="status-banner approved">
+                <div id="statusIcon" class="status-icon">✔</div>
+                <div class="status-info">
+                    <h2 id="statusTitle">SISTEMA INICIALIZADO</h2>
+                    <p id="statusSubtitle">Listo para escanear empaques en la línea de ensamble.</p>
+                </div>
+            </div>
+
+            <!-- Pneumatic Arm Actuator Feedback -->
+            <div id="pneumaticArmBox" class="actuator-box idle">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 700; text-transform: uppercase;">Actuador: Brazo Neumático de Rechazo</span>
+                    <span id="actuatorLed" style="font-size: 0.8rem; font-weight: bold;">ESTADO: LISTO</span>
+                </div>
+                <div id="pneumaticArmStatus" style="margin-top: 6px;">
+                    En espera de detección de lote o fecha con falla...
+                </div>
+            </div>
+
+            <!-- OCR Readout Cards -->
+            <div class="readout-grid">
+                <div class="readout-item">
+                    <span>Lote Detectado</span>
+                    <strong id="readoutLote">--</strong>
+                </div>
+                <div class="readout-item">
+                    <span>Caducidad Detectada</span>
+                    <strong id="readoutVenc">--</strong>
+                </div>
+                <div class="readout-item">
+                    <span>Nivel de Legibilidad</span>
+                    <strong id="readoutConfidence">--%</strong>
+                    <div class="confidence-container">
+                        <div id="confidenceBar" class="confidence-bar"></div>
+                    </div>
+                </div>
+                <div class="readout-item">
+                    <span>Hora Exacta del Evento</span>
+                    <strong id="readoutTimestamp" style="font-size: 0.95rem;">--</strong>
+                </div>
+            </div>
+
+            <!-- Real OCR Engine Telemetry & Raw Stream -->
+            <div class="card" style="margin-bottom: 16px; padding: 12px; font-size: 0.82rem; background: #131d2e; border: 1px solid #1e3a5f;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 700; color: var(--cyan-accent); display: flex; align-items: center; gap: 6px;">
+                        <span>🔬</span> Motor OCR: <span id="ocrEngineName">Tesseract.js (Red Neuronal LSTM)</span>
+                    </span>
+                    <span id="ocrTime" style="font-family: var(--font-mono); color: #38bdf8; font-weight: bold; font-size: 0.75rem;">Latencia: -- ms</span>
+                </div>
+                <div style="color: #94a3b8; margin-bottom: 4px; font-size: 0.73rem;">
+                    Texto en crudo extraído de los píxeles (Stream OCR Real):
+                </div>
+                <pre id="rawOcrText" style="background: #090d16; border: 1px solid #1e293b; padding: 8px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.78rem; color: #38bdf8; max-height: 80px; overflow-y: auto; white-space: pre-wrap;">(En espera de escaneo...)</pre>
+            </div>
+
+            <!-- Statistics Counters -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <span>Total Inspección</span>
+                    <strong id="statTotal">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span style="color: var(--pass-green);">Aprobados</span>
+                    <strong id="statPassed" style="color: var(--pass-green);">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span style="color: var(--kimby-red);">Descartados</span>
+                    <strong id="statRejected" style="color: var(--kimby-red);">0</strong>
+                </div>
+                <div class="stat-card">
+                    <span>% Rechazo</span>
+                    <strong id="statRejectRate">0.0%</strong>
+                </div>
+            </div>
+
+            <!-- Audit Trail & Traceability Table -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px;">
+                    <div class="card-title" style="margin-bottom: 0; border-bottom: none; padding-bottom: 0;">
+                        <span>📋</span> Bitácora de Trazabilidad y Descartes (Auditoría)
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btnExportCSV" class="btn btn-sm btn-success">📥 Exportar CSV</button>
+                        <button id="btnClearLogs" class="btn btn-sm">🗑 Limpiar</button>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table class="qc-table">
+                        <thead>
+                            <tr>
+                                <th>Hora y Fecha</th>
+                                <th>Resultado</th>
+                                <th>Lote</th>
+                                <th>Caducidad</th>
+                                <th>Confianza</th>
+                                <th>Diagnóstico / Causa</th>
+                                <th>Actuador</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Scripts with Cache-Busting Version Query -->
+    <script src="js/audio.js?v=20261002_03"></script>
+    <script src="js/vision.js?v=20261002_03"></script>
+    <script src="js/samples.js?v=20261002_03"></script>
+    <script src="js/ocr.js?v=20261002_03"></script>
+    <script src="js/app.js?v=20261002_03"></script>
+
+    <!-- Force Clear Stale Cache & Refresh Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(regs => {
+                for (let reg of regs) {
+                    reg.update();
+                }
+            });
+        }
+        if ('caches' in window) {
+            caches.keys().then(keys => {
+                keys.forEach(k => {
+                    if (k === 'kimby-qc-v1') caches.delete(k);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

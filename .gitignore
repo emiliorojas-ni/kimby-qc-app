@@ -1,0 +1,26 @@
+# Blender raw frame sequences, portable tools and heavy caches
+produccion_blender_v2/master_hd_frames/
+produccion_blender_v2/render_tools/
+produccion_blender_v2/eevee_chunks/
+produccion_blender_v2/*.mp4
+produccion_blender_v2/*.blend1
+produccion_blender_v2/KIMBY_linea_*.blend
+produccion_blender_v2/KIMBY_60s_rev2[1-7].blend
+produccion_blender_v2/*.log
+
+# Temporary build artifacts and Office lock files
+plantilla_convertida.docx
+~$*
+
+# Python bytecode and logs
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+
+# OS metadata and editor configurations
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

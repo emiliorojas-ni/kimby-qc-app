@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estudio & Generador de Etiquetas - Embutidos Kimby (Caso 1)</title>
+    <style>
+        :root {
+            --kimby-red: #b91c1c;
+            --kimby-dark-red: #7f1d1d;
+            --kimby-yellow: #f59e0b;
+            --kimby-gold: #fbbf24;
+            --kimby-bg: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--kimby-bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Bar */
+        header {
+            background: linear-gradient(90deg, #991b1b 0%, #b91c1c 100%);
+            border-bottom: 2px solid var(--kimby-yellow);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            font-size: 28px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 6px 10px;
+            border-radius: 8px;
+        }
+
+        .brand-title {
+            font-size: 19px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            color: #ffffff;
+        }
+
+        .brand-sub {
+            font-size: 12px;
+            color: var(--kimby-gold);
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: #ffffff;
+        }
+
+        .nav-btn-primary {
+            background: var(--kimby-yellow);
+            color: #78350f;
+            border-color: var(--kimby-gold);
+        }
+
+        .nav-btn-primary:hover {
+            background: #fcd34d;
+        }
+
+        /* Layout Grid */
+        .workspace {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+        }
+
+        @media (max-width: 1024px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .panel-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--kimby-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Presets Grid */
+        .presets-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .preset-btn {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .preset-btn:hover {
+            border-color: var(--kimby-yellow);
+            background: #1e293b;
+        }
+
+        .preset-btn.active {
+            border-color: var(--kimby-gold);
+            background: rgba(245, 158, 11, 0.15);
+        }
+
+        .preset-tag {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: fit-content;
+        }
+
+        .tag-pass {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid #059669;
+        }
+
+        .tag-defect {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid #dc2626;
+        }
+
+        /* Form Fields */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .form-control {
+            background: #0f172a;
+            border: 1px solid var(--border-color);
+            color: #ffffff;
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--kimby-yellow);
+        }
+
+        .range-slider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-slider input[type="range"] {
+            flex: 1;
+            accent-color: var(--kimby-yellow);
+        }
+
+        .slider-val {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--kimby-gold);
+            min-width: 45px;
+            text-align: right;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-group input {
+            accent-color: var(--kimby-red);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Right Panel: Canvas & Preview */
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            width: 100%;
+        }
+
+        .canvas-wrapper {
+            background: #0b0f19;
+            padding: 16px;
+            border-radius: 12px;
+            border: 2px dashed #475569;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+            max-width: 100%;
+            overflow-x: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        #labelCanvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+
+        /* Action Buttons */
+        .actions-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-action {
+            background: var(--kimby-red);
+            color: #ffffff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            box-shadow: 0 4px 10px rgba(185, 28, 28, 0.4);
+        }
+
+        .btn-action:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+            color: #451a03;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+        }
+
+        .btn-gold:hover {
+            background: linear-gradient(135deg, #b45309 0%, #d97706 100%);
+            color: #ffffff;
+        }
+
+        .btn-secondary {
+            background: #334155;
+            color: #f1f5f9;
+            box-shadow: none;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+        }
+
+        /* Instruction & Blender Info */
+        .info-box {
+            background: rgba(30, 41, 59, 0.8);
+            border-left: 4px solid #38bdf8;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #cbd5e1;
+        }
+
+        .info-box strong {
+            color: #38bdf8;
+        }
+
+        .qc-verdict-box {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        .qc-verdict-pass {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid #10b981;
+            color: #34d399;
+        }
+
+        .qc-verdict-reject {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid #ef4444;
+            color: #f87171;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🏷️</div>
+            <div>
+                <div class="brand-title">EMBUTIDOS KIMBY - ESTUDIO & GENERADOR DE ETIQUETAS</div>
+                <div class="brand-sub">Generador de Texturas 3D (Blender / Hixfield MCP) y Plantillas Físicas de Inspección</div>
+            </div>
+        </div>
+        <div class="nav-links">
+            <a href="index.html" class="nav-btn nav-btn-primary">📱 Abrir App SCADA Kimby</a>
+            <a href="plantilla_estandar.html" class="nav-btn">📐 Ver Plantillas de Caso</a>
+        </div>
+    </header>
+
+    <!-- Workspace -->
+    <div class="workspace">
+
+        <!-- Controls Column -->
+        <div class="panel">
+
+            <!-- Presets -->
+            <div>
+                <div class="panel-title">⚡ 1. Presets Rápidos de Etiquetas</div>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 10px 0;">
+                    Selecciona un caso estándar para cargar datos y defectos automáticamente:
+                </p>
+                <div class="presets-grid">
+                    <button class="preset-btn active" onclick="loadPreset(0)">
+                        <span class="preset-tag tag-pass">✔ Conforme 1</span>
+                        <strong>Salchicha Viena 500g</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Lote KMB-2026-A01</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(1)">
+                        <span class="preset-tag tag-pass">✔ Conforme 2</span>
+                        <strong>Jamón Especial 400g</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Lote KMB-2026-B14</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(2)">
+                        <span class="preset-tag tag-pass">✔ Conforme 3</span>
+                        <strong>Mortadela Familiar 750g</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Lote KMB-2026-C08</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(3)">
+                        <span class="preset-tag tag-defect">✖ Falla Térmica 1</span>
+                        <strong>Pines Quemados</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Líneas blancas en KMB</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(4)">
+                        <span class="preset-tag tag-defect">✖ Falla Térmica 2</span>
+                        <strong>Impresión Borrosa</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Desenfoque y arrastre</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(5)">
+                        <span class="preset-tag tag-defect">✖ Falla Sanitaria</span>
+                        <strong>Fecha Vencida</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Venc: 10/01/2023</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(6)">
+                        <span class="preset-tag tag-defect">✖ Falla Código</span>
+                        <strong>Código Incompleto</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">KM-26 (Sin KMB completo)</span>
+                    </button>
+                    <button class="preset-btn" onclick="loadPreset(7)">
+                        <span class="preset-tag tag-defect">✖ Falla Empaque</span>
+                        <strong>Arruga y Reflejo</strong>
+                        <span style="font-size: 10px; color: var(--text-muted);">Brillo sobre fechador</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Basic Text Data -->
+            <div>
+                <div class="panel-title">✍️ 2. Datos del Producto & Trazabilidad</div>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label>Nombre del Producto:</label>
+                        <input type="text" id="inputProduct" class="form-control" value="SALCHICHA VIENA TRADICIONAL" oninput="renderLabel()">
+                    </div>
+                    <div class="form-group">
+                        <label>Subtítulo / Formato:</label>
+                        <input type="text" id="inputSub" class="form-control" value="EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN" oninput="renderLabel()">
+                    </div>
+                    <div class="form-group">
+                        <label>Código de Lote (Debe contener KMB-YYYY-XXX):</label>
+                        <input type="text" id="inputLote" class="form-control" value="KMB-2026-A01" oninput="renderLabel()">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Vencimiento (DD/MM/AAAA):</label>
+                        <input type="text" id="inputVenc" class="form-control" value="15/12/2026" oninput="renderLabel()">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha de Producción & Turno:</label>
+                        <input type="text" id="inputProd" class="form-control" value="15/10/2026  TURNO 1  L-01" oninput="renderLabel()">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Defect Modifiers -->
+            <div>
+                <div class="panel-title">🔬 3. Simulador de Fallas & Desgaste Industrial</div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    
+                    <div class="form-group">
+                        <label>
+                            <span>Borrosidad / Desenfoque Térmico (px):</span>
+                            <span id="valBlur" class="slider-val">0 px</span>
+                        </label>
+                        <div class="range-slider">
+                            <input type="range" id="sliderBlur" min="0" max="10" step="0.5" value="0" oninput="updateDefectValues()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <span>Pines Rotos del Cabezal (Líneas Drop-out):</span>
+                            <span id="valPins" class="slider-val">0</span>
+                        </label>
+                        <div class="range-slider">
+                            <input type="range" id="sliderPins" min="0" max="6" step="1" value="0" oninput="updateDefectValues()">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <span>Opacidad de Tinta (Desvanecimiento):</span>
+                            <span id="valOpacity" class="slider-val">100%</span>
+                        </label>
+                        <div class="range-slider">
+                            <input type="range" id="sliderOpacity" min="30" max="100" step="5" value="100" oninput="updateDefectValues()">
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="chkWrinkle" onchange="renderLabel()">
+                        <label for="chkWrinkle">Simular Arruga Plástica y Reflejo Especular de Luz</label>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="chkRedVenc" onchange="renderLabel()">
+                        <label for="chkRedVenc">Marcar Fecha en Rojo (Alerta de Caducidad Vencida)</label>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Preview Column -->
+        <div class="panel">
+            <div class="panel-title">👁️ Vista Previa en Alta Resolución (1200 × 800 px)</div>
+
+            <!-- Live Prediction Status according to app rules -->
+            <div id="verdictBox" class="qc-verdict-box qc-verdict-pass">
+                <span>✔ <strong>VEREDICTO ESPERADO EN LA APP KIMBY:</strong> CONFORME (Aprobada por OCR y Regla de Fecha)</span>
+            </div>
+
+            <!-- Canvas Viewport -->
+            <div class="canvas-wrapper">
+                <canvas id="labelCanvas" width="1200" height="800"></canvas>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="actions-row">
+                <button class="btn-action" onclick="downloadCurrentLabel()">
+                    <span>📥</span> Descargar Esta Etiqueta (PNG)
+                </button>
+                <button class="btn-action btn-gold" onclick="downloadAllPack()">
+                    <span>📦</span> Descargar Lote Completo (8 Etiquetas)
+                </button>
+                <button class="btn-action btn-secondary" onclick="window.print()">
+                    <span>🖨️</span> Imprimir para Prueba Física
+                </button>
+            </div>
+
+            <!-- Blender & Hixfield Info -->
+            <div class="info-box">
+                <strong>🎬 Uso para el Video Físico y Blender 3D (Hixfield MCP):</strong><br>
+                • <strong>Para el video con tu teléfono:</strong> Puedes descargar las fotos o proyectar esta pantalla y apuntar con la cámara de la App SCADA (<code>http://192.168.1.68:8000</code>).<br>
+                • <strong>Para la escena de Blender:</strong> Las imágenes PNG descargadas están optimizadas a 1200x800px para aplicarse directamente como <em>Base Color / Image Texture</em> en el material del paquete de salchichas sobre la cinta transportadora.
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // Preset configurations
+        const PRESETS = [
+            {
+                name: "Conforme 1 - Salchicha 500g",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-A01",
+                venc: "15/12/2026",
+                meta: "15/10/2026  TURNO 1  L-01",
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                redVenc: false,
+                expected: "pass",
+                reason: "Contiene prefijo KMB, longitud completa de lote y fecha vigente posterior al turno."
+            },
+            {
+                name: "Conforme 2 - Jamón Pierna 400g",
+                prod: "JAMÓN COCIDO ESPECIAL PIERNA",
+                sub: "REBANADO FINO • 400g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-B14",
+                venc: "20/01/2027",
+                meta: "20/10/2026  TURNO 2  L-03",
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                redVenc: false,
+                expected: "pass",
+                reason: "Lectura 100% nítida, lote trazable y fecha futura."
+            },
+            {
+                name: "Conforme 3 - Mortadela Familiar 750g",
+                prod: "MORTADELA FAMILIAR SUPREMA",
+                sub: "EMPAQUE AL VACÍO • 750g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-C08",
+                venc: "05/02/2027",
+                meta: "25/10/2026  TURNO 1  L-02",
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                redVenc: false,
+                expected: "pass",
+                reason: "Lote Kimby conforme con caracteres íntegros."
+            },
+            {
+                name: "Falla Térmica 1 - Pines Quemados",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-A01",
+                venc: "15/12/2026",
+                meta: "15/10/2026  TURNO 1  L-01",
+                blur: 0.8,
+                pins: 3,
+                opacity: 90,
+                wrinkle: false,
+                redVenc: false,
+                expected: "reject",
+                reason: "Líneas drop-out cortan caracteres clave. OCR no puede segmentar KMB -> Brazo eyector neumático se activa."
+            },
+            {
+                name: "Falla Térmica 2 - Impresión Borrosa",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-A01",
+                venc: "15/12/2026",
+                meta: "15/10/2026  TURNO 1  L-01",
+                blur: 5.5,
+                pins: 0,
+                opacity: 65,
+                wrinkle: false,
+                redVenc: false,
+                expected: "reject",
+                reason: "Falla menor de cabezal térmico reportada en el caso Kimby. Tinta frotada e ilegible -> Rechazo inmediato."
+            },
+            {
+                name: "Falla Sanitaria - Fecha Vencida",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-A01",
+                venc: "10/01/2023",
+                meta: "10/07/2022  TURNO 1  L-01",
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: false,
+                redVenc: true,
+                expected: "reject",
+                reason: "OCR lee correctamente, pero el motor de reglas detecta fecha menor a la actual -> Bloqueo sanitario y descarte."
+            },
+            {
+                name: "Falla Código - Incompleto / Sin KMB",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KM-26",
+                venc: "15/--/----",
+                meta: "15/10/2026  TURNO 1  L-01",
+                blur: 2.5,
+                pins: 0,
+                opacity: 70,
+                wrinkle: false,
+                redVenc: false,
+                expected: "reject",
+                reason: "No cumple con la condición KMB y la longitud requerida (menos de 10 caracteres) -> Descarte automático."
+            },
+            {
+                name: "Falla Empaque - Arruga y Reflejo",
+                prod: "SALCHICHA VIENA TRADICIONAL",
+                sub: "EMPAQUE AL VACÍO • 500g • MANTÉNGASE EN REFRIGERACIÓN",
+                lote: "KMB-2026-A01",
+                venc: "15/12/2026",
+                meta: "15/10/2026  TURNO 1  L-01",
+                blur: 0,
+                pins: 0,
+                opacity: 100,
+                wrinkle: true,
+                redVenc: false,
+                expected: "reject",
+                reason: "Pliegue del empaque al vacío y reflejo especular sobre el fechador impiden lectura nítida."
+            }
+        ];
+
+        let activePresetIndex = 0;
+
+        function loadPreset(idx) {
+            activePresetIndex = idx;
+            const p = PRESETS[idx];
+            document.querySelectorAll('.preset-btn').forEach((b, i) => {
+                b.classList.toggle('active', i === idx);
+            });
+
+            document.getElementById('inputProduct').value = p.prod;
+            document.getElementById('inputSub').value = p.sub;
+            document.getElementById('inputLote').value = p.lote;
+            document.getElementById('inputVenc').value = p.venc;
+            document.getElementById('inputProd').value = p.meta;
+
+            document.getElementById('sliderBlur').value = p.blur;
+            document.getElementById('sliderPins').value = p.pins;
+            document.getElementById('sliderOpacity').value = p.opacity;
+            document.getElementById('chkWrinkle').checked = p.wrinkle;
+            document.getElementById('chkRedVenc').checked = p.redVenc;
+
+            updateDefectValues();
+        }
+
+        function updateDefectValues() {
+            const blurVal = parseFloat(document.getElementById('sliderBlur').value);
+            const pinsVal = parseInt(document.getElementById('sliderPins').value);
+            const opVal = parseInt(document.getElementById('sliderOpacity').value);
+
+            document.getElementById('valBlur').textContent = blurVal + ' px';
+            document.getElementById('valPins').textContent = pinsVal;
+            document.getElementById('valOpacity').textContent = opVal + '%';
+
+            renderLabel();
+        }
+
+        // Draw barcode helper
+        function drawBarcode(ctx, x, y, width, height) {
+            let curX = x;
+            const seed = [3, 2, 5, 2, 4, 3, 6, 2, 4, 2, 3, 5, 2, 4, 3, 2, 5, 2, 4, 3, 2, 5, 4, 2, 3, 2, 4, 3, 2, 5];
+            let i = 0;
+            ctx.fillStyle = "#1e293b";
+            while (curX < x + width) {
+                const bw = seed[i % seed.length];
+                const sw = seed[(i + 1) % seed.length];
+                ctx.fillRect(curX, y, bw, height);
+                curX += bw + sw;
+                i++;
+            }
+            // End guards
+            ctx.fillRect(x - 4, y, 2, height + 6);
+            ctx.fillRect(x + width + 2, y, 2, height + 6);
+
+            ctx.fillStyle = "#1e293b";
+            ctx.font = "16px Consolas, monospace";
+            ctx.fillText("7 701234 567890", x + 15, y + height + 16);
+        }
+
+        function renderLabel() {
+            const canvas = document.getElementById('labelCanvas');
+            const ctx = canvas.getContext('2d');
+            const W = 1200;
+            const H = 800;
+
+            const productTitle = document.getElementById('inputProduct').value || "EMBUTIDO KIMBY";
+            const productSub = document.getElementById('inputSub').value || "PRODUCTO CARNICO";
+            const lotStr = document.getElementById('inputLote').value || "KMB-XXXX-XXX";
+            const vencStr = document.getElementById('inputVenc').value || "DD/MM/AAAA";
+            const prodStr = document.getElementById('inputProd').value || "TURNO 1";
+
+            const blurPx = parseFloat(document.getElementById('sliderBlur').value);
+            const pinDrops = parseInt(document.getElementById('sliderPins').value);
+            const opacity = parseInt(document.getElementById('sliderOpacity').value) / 100;
+            const wrinkle = document.getElementById('chkWrinkle').checked;
+            const redVenc = document.getElementById('chkRedVenc').checked;
+
+            // Update expected verdict box
+            const verdictBox = document.getElementById('verdictBox');
+            let isPass = true;
+            let verdictReason = "";
+
+            if (!lotStr.toUpperCase().includes("KMB")) {
+                isPass = false;
+                verdictReason = "RECHAZO: El código no contiene el prefijo obligatorio 'KMB'.";
+            } else if (lotStr.length < 10) {
+                isPass = false;
+                verdictReason = "RECHAZO: Longitud insuficiente del código de lote (< 10 caracteres).";
+            } else if (blurPx >= 3.0 || pinDrops >= 2) {
+                isPass = false;
+                verdictReason = "RECHAZO: Tinta degradada/borrosa o pines quemados del cabezal térmico impiden lectura 100%.";
+            } else if (redVenc || vencStr.includes("2020") || vencStr.includes("2021") || vencStr.includes("2022") || vencStr.includes("2023")) {
+                isPass = false;
+                verdictReason = "RECHAZO: Fecha de vencimiento caducada detectada por regla sanitaria.";
+            } else {
+                verdictReason = "CONFORME: Etiqueta 100% nítida, lote válido con prefijo KMB y fecha vigente.";
+            }
+
+            if (isPass) {
+                verdictBox.className = "qc-verdict-box qc-verdict-pass";
+                verdictBox.innerHTML = `<span>✔ <strong>VEREDICTO ESPERADO EN LA APP:</strong> ${verdictReason}</span>`;
+            } else {
+                verdictBox.className = "qc-verdict-box qc-verdict-reject";
+                verdictBox.innerHTML = `<span>✖ <strong>VEREDICTO ESPERADO EN LA APP:</strong> ${verdictReason}</span>`;
+            }
+
+            // 1. Draw Packaging Base (Kimby Red vacuum sealed look)
+            ctx.clearRect(0, 0, W, H);
+            
+            const grad = ctx.createLinearGradient(0, 0, 0, H);
+            grad.addColorStop(0, '#991b1b');
+            grad.addColorStop(0.5, '#b91c1c');
+            grad.addColorStop(1, '#881337');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, W, H);
+
+            // Sealed seams top and bottom
+            ctx.fillStyle = "#7f1d1d";
+            ctx.fillRect(0, 0, W, 26);
+            ctx.fillRect(0, H - 26, W, 26);
+
+            ctx.fillStyle = "#a82020";
+            for (let x = 0; x < W; x += 10) {
+                ctx.fillRect(x, 2, 4, 22);
+                ctx.fillRect(x, H - 24, 4, 22);
+            }
+
+            // Central Card
+            const cardX = 60, cardY = 50, cardW = W - 120, cardH = H - 100;
+            ctx.fillStyle = "#b91c1c";
+            ctx.strokeStyle = "#ef4444";
+            ctx.lineWidth = 3;
+            roundRect(ctx, cardX, cardY, cardW, cardH, 16, true, true);
+
+            // Ribbon Gold Header
+            const ribX = cardX + 20, ribY = cardY + 15, ribW = cardW - 40, ribH = 75;
+            ctx.fillStyle = "#f59e0b";
+            ctx.strokeStyle = "#fbbf24";
+            ctx.lineWidth = 2;
+            roundRect(ctx, ribX, ribY, ribW, ribH, 10, true, true);
+
+            ctx.fillStyle = "#78350f";
+            ctx.font = "bold 44px Arial, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("EMBUTIDOS KIMBY - CALIDAD Y TRADICIÓN", W / 2, ribY + 54);
+
+            // Product Title & Subtitle
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 44px Arial, sans-serif";
+            ctx.fillText(productTitle.toUpperCase(), W / 2, ribY + 130);
+
+            ctx.fillStyle = "#fef08a";
+            ctx.font = "bold 23px Arial, sans-serif";
+            ctx.fillText(productSub.toUpperCase(), W / 2, ribY + 170);
+
+            // Thermal window coordinates
+            const winW = 840, winH = 290;
+            const winX = (W - winW) / 2;
+            const winY = ribY + 205;
+
+            // Matte White thermal window
+            ctx.fillStyle = "#ffffff";
+            ctx.strokeStyle = "#cbd5e1";
+            ctx.lineWidth = 2;
+            roundRect(ctx, winX, winY, winW, winH, 8, true, true);
+
+            // Registration marks
+            ctx.strokeStyle = "#94a3b8";
+            ctx.lineWidth = 2;
+            // TL
+            ctx.beginPath(); ctx.moveTo(winX + 10, winY + 28); ctx.lineTo(winX + 10, winY + 10); ctx.lineTo(winX + 28, winY + 10); ctx.stroke();
+            // TR
+            ctx.beginPath(); ctx.moveTo(winX + winW - 28, winY + 10); ctx.lineTo(winX + winW - 10, winY + 10); ctx.lineTo(winX + winW - 10, winY + 28); ctx.stroke();
+            // BL
+            ctx.beginPath(); ctx.moveTo(winX + 10, winY + winH - 28); ctx.lineTo(winX + 10, winY + winH - 10); ctx.lineTo(winX + 28, winY + winH - 10); ctx.stroke();
+            // BR
+            ctx.beginPath(); ctx.moveTo(winX + winW - 28, winY + winH - 10); ctx.lineTo(winX + winW - 10, winY + winH - 10); ctx.lineTo(winX + winW - 10, winY + winH - 28); ctx.stroke();
+
+            // Tag line inside window
+            ctx.textAlign = "left";
+            ctx.fillStyle = "#64748b";
+            ctx.font = "16px Arial, sans-serif";
+            ctx.fillText("[VENTANA DE CODIFICACION TERMICA TIJ / TTO - ALTA VELOCIDAD]", winX + 35, winY + 28);
+
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.beginPath();
+            ctx.moveTo(winX + 35, winY + 38);
+            ctx.lineTo(winX + winW - 35, winY + 38);
+            ctx.stroke();
+
+            // 2. Render Thermal Printed Text on an offscreen canvas to apply blur & pins cleanly
+            const tCanvas = document.createElement('canvas');
+            tCanvas.width = winW;
+            tCanvas.height = winH;
+            const tCtx = tCanvas.getContext('2d');
+
+            tCtx.fillStyle = redVenc ? "#b91c1c" : `rgba(15, 23, 42, ${opacity})`;
+            tCtx.font = "bold 44px 'Courier New', Courier, monospace";
+
+            const textX = 45;
+            const textY1 = 95;
+            const textY2 = 170;
+            const textY3 = 240;
+
+            tCtx.fillStyle = `rgba(15, 23, 42, ${opacity})`;
+            tCtx.fillText(`LOTE:  ${lotStr}`, textX, textY1);
+
+            tCtx.fillStyle = redVenc ? "#b91c1c" : `rgba(15, 23, 42, ${opacity})`;
+            tCtx.fillText(`VENC:  ${vencStr}`, textX, textY2);
+
+            tCtx.fillStyle = `rgba(71, 85, 105, ${opacity * 0.9})`;
+            tCtx.font = "bold 23px 'Courier New', Courier, monospace";
+            tCtx.fillText(`PROD:  ${prodStr}`, textX, textY3);
+
+            // Broken pin dropouts
+            if (pinDrops > 0) {
+                tCtx.fillStyle = "#ffffff";
+                const dropYPositions = [
+                    textY1 - 25,
+                    textY1 - 10,
+                    textY2 - 25,
+                    textY2 - 10,
+                    textY1 - 18,
+                    textY2 - 18
+                ];
+                for (let d = 0; d < pinDrops && d < dropYPositions.length; d++) {
+                    tCtx.fillRect(textX - 10, dropYPositions[d], winW - 50, 4);
+                }
+            }
+
+            // Draw thermal canvas onto main canvas with blur if needed
+            ctx.save();
+            if (blurPx > 0) {
+                ctx.filter = `blur(${blurPx}px)`;
+            }
+            ctx.drawImage(tCanvas, winX, winY);
+            ctx.restore();
+
+            // Plastic Wrinkle and glare overlay
+            if (wrinkle) {
+                ctx.save();
+                const glareGrad = ctx.createLinearGradient(winX + 150, winY, winX + 320, winY + winH);
+                glareGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+                glareGrad.addColorStop(0.4, "rgba(255, 255, 255, 0.75)");
+                glareGrad.addColorStop(0.6, "rgba(255, 255, 255, 0.85)");
+                glareGrad.addColorStop(1, "rgba(255, 255, 255, 0)");
+                ctx.fillStyle = glareGrad;
+                ctx.fillRect(winX + 100, winY, 250, winH);
+
+                // Wrinkle crease shadow
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(winX + 220, winY);
+                ctx.bezierCurveTo(winX + 240, winY + 100, winX + 200, winY + 180, winX + 230, winY + winH);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Bottom Barcode & Ministry badge
+            drawBarcode(ctx, winX + 35, winY + winH + 20, 260, 48);
+
+            const badgeX = winX + winW - 320;
+            const badgeY = winY + winH + 18;
+            ctx.fillStyle = "#991b1b";
+            ctx.strokeStyle = "#fde047";
+            ctx.lineWidth = 1;
+            roundRect(ctx, badgeX, badgeY, 285, 68, 6, true, true);
+
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "bold 15px Consolas, monospace";
+            ctx.fillText("INSPECCIONADO Y APROBADO", badgeX + 14, badgeY + 28);
+
+            ctx.fillStyle = "#fef08a";
+            ctx.font = "12px Arial, sans-serif";
+            ctx.fillText("MINISTERIO DE SALUD | REG. SAN. 4410", badgeX + 14, badgeY + 52);
+        }
+
+        // Helper roundRect
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // Download single label
+        function downloadCurrentLabel() {
+            const canvas = document.getElementById('labelCanvas');
+            const pName = document.getElementById('inputProduct').value.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const lote = document.getElementById('inputLote').value.replace(/[^a-zA-Z0-9]/g, '_');
+            const filename = `kimby_etiqueta_${pName}_${lote}.png`;
+
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Download all 8 presets sequentially
+        async function downloadAllPack() {
+            for (let i = 0; i < PRESETS.length; i++) {
+                loadPreset(i);
+                await new Promise(r => setTimeout(r, 200));
+                const canvas = document.getElementById('labelCanvas');
+                const link = document.createElement('a');
+                const safeName = PRESETS[i].name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                link.download = `kimby_pack_${i + 1}_${safeName}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                await new Promise(r => setTimeout(r, 300));
+            }
+        }
+
+        // Initial setup
+        window.addEventListener('DOMContentLoaded', () => {
+            loadPreset(0);
+        });
+    </script>
+</body>
+</html>

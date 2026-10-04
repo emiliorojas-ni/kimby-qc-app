@@ -1,0 +1,20 @@
+{
+  "test": "Lote y fecha diferentes a produccion, modo strict, sin OCR ni muestra sintetica",
+  "input": {
+    "lote": "KMB-2099-Z99",
+    "venc": "20/01/2099",
+    "hasKMB": true,
+    "kmbComplete": true
+  },
+  "configured": {
+    "lote": "KMB-2026-A01",
+    "venc": "15/12/2026"
+  },
+  "result": {
+    "status": "APPROVED",
+    "reasonCode": "CONFORMING",
+    "reasonMsg": "APROBADO: Lote [KMB-2099-Z99] (KMB y código completo) y Caducidad [20/01/2099] detectados y legibles.",
+    "pneumaticSignal": false,
+    "severity": "NORMAL"
+  }
+}

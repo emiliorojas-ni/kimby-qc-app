@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plantilla Estándar de Etiquetas - Embutidos Kimby (Caso 1)</title>
+    <style>
+        :root {
+            --kimby-red: #b91c1c;
+            --kimby-yellow: #f59e0b;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+            margin: 0;
+            padding: 20px;
+        }
+        .header-actions {
+            max-width: 900px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: var(--kimby-red);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 15px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn:hover {
+            background-color: #991b1b;
+        }
+        .btn-secondary {
+            background-color: #475569;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: var(--kimby-red);
+            margin-top: 0;
+            font-size: 24px;
+        }
+        .spec-box {
+            background-color: #eff6ff;
+            border-left: 5px solid #3b82f6;
+            padding: 14px 18px;
+            margin-bottom: 25px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .spec-box strong {
+            color: #1e40af;
+        }
+        .labels-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        @media (max-width: 700px) {
+            .labels-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Individual Packaging Label */
+        .label-card {
+            border: 2px dashed #94a3b8;
+            border-radius: 8px;
+            padding: 16px;
+            background-color: #fafafa;
+            position: relative;
+        }
+        .label-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .badge-pass {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .badge-reject {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        /* Packaging physical representation */
+        .kimby-pack {
+            background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%);
+            border-radius: 6px;
+            padding: 12px;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        }
+        .pack-header {
+            background-color: var(--kimby-yellow);
+            color: #7f1d1d;
+            font-weight: 900;
+            font-size: 14px;
+            padding: 4px 8px;
+            text-align: center;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .pack-sub {
+            font-size: 10px;
+            text-align: center;
+            color: #fef08a;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        /* Thermal print zone */
+        .thermal-box {
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 12px;
+            color: #111827;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: left;
+        }
+        .thermal-zone-tag {
+            font-size: 9px;
+            color: #6b7280;
+            margin-bottom: 6px;
+            border-bottom: 1px dotted #ccc;
+            padding-bottom: 2px;
+        }
+        .thermal-line {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            line-height: 1.4;
+            color: #000000;
+        }
+        /* Defect styles */
+        .thermal-blurry {
+            filter: blur(2.8px);
+            opacity: 0.65;
+            user-select: none;
+        }
+        .thermal-broken {
+            position: relative;
+            background: repeating-linear-gradient(
+                90deg,
+                #fff,
+                #fff 8px,
+                rgba(255,255,255,0.7) 8px,
+                rgba(255,255,255,0.7) 12px
+            );
+            filter: blur(1.5px);
+        }
+        .cut-guide {
+            font-size: 11px;
+            color: #64748b;
+            text-align: center;
+            margin-top: 8px;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .header-actions {
+                display: none;
+            }
+            .container {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .label-card {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-actions">
+        <div>
+            <h2 style="margin: 0; font-size: 18px;">Plantillas Estándar de Prueba - Embutidos Kimby</h2>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #64748b;">
+                Puedes apuntar la cámara de tu celular a la pantalla o pulsar "Imprimir" para recortarlas en papel físico.
+            </p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="generador.html" class="btn" style="background: #f59e0b; color: #78350f;">🎨 Generador Interactivo</a>
+            <button onclick="window.print()" class="btn">🖨 Imprimir en Papel</button>
+            <a href="index.html" class="btn btn-secondary">⬅ Volver a la App</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>📐 ESPECIFICACIÓN DE LA PLANTILLA ESTÁNDAR (ESTÁNDAR DOMINO / KIMBY)</h1>
+        
+        <div class="spec-box">
+            <strong>¿Cuál es la Plantilla Estándar Industrial para Embutidos Kimby?</strong><br>
+            En la industria cárnica, los cabezales térmicos (TIJ / TTO) imprimen una matriz alfanumérica de 2 líneas sobre una ventana blanca o despejada de <strong>60 mm × 25 mm</strong> en la funda plástica:<br><br>
+            • <strong>Línea 1 (Trazabilidad de Lote):</strong> <code>LOTE: [CÓDIGO ALFANUMÉRICO]</code> (Ejemplo: <code>LOTE: KMB-2026-A01</code> o <code>LOT: L-241015</code>)<br>
+            • <strong>Línea 2 (Fecha de Caducidad):</strong> <code>VENC: [DD/MM/AAAA]</code> (Ejemplo: <code>VENC: 15/12/2026</code> o <code>EXP: 15-DIC-2026</code>)<br>
+            • <strong>Regla de Aprobación:</strong> El texto debe tener legibilidad ≥ 65% y la fecha debe ser posterior al día de producción.<br>
+            • <strong>Regla de Rechazo:</strong> Si la tinta está corrida, si faltan caracteres o si la fecha está vencida ➔ <em>¡Señal al brazo neumático y descarte a mermas!</em>
+        </div>
+
+        <div class="labels-grid">
+
+            <!-- ETIQUETA 1: CONFORME -->
+            <div class="label-card">
+                <span class="label-badge badge-pass">✔ Etiqueta 1: Conforme (Debe Aprobar)</span>
+                <div class="kimby-pack">
+                    <div class="pack-header">EMBUTIDOS KIMBY</div>
+                    <div class="pack-sub">Salchichas Tradicionales 500g</div>
+                    <div class="thermal-box">
+                        <div class="thermal-zone-tag">ZONA DE FECHADOR TÉRMICO EN LÍNEA</div>
+                        <div class="thermal-line">LOTE: KMB-2026-A01</div>
+                        <div class="thermal-line">VENC: 15/12/2026</div>
+                    </div>
+                </div>
+                <div class="cut-guide">✂ Recortar por la línea punteada para prueba física</div>
+            </div>
+
+            <!-- ETIQUETA 2: FALLA CABEZAL (BORROSA) -->
+            <div class="label-card">
+                <span class="label-badge badge-reject">✖ Etiqueta 2: Falla Cabezal Térmico (Debe Descartar)</span>
+                <div class="kimby-pack">
+                    <div class="pack-header">EMBUTIDOS KIMBY</div>
+                    <div class="pack-sub">Salchichas Tradicionales 500g</div>
+                    <div class="thermal-box">
+                        <div class="thermal-zone-tag">ZONA DE FECHADOR TÉRMICO EN LÍNEA</div>
+                        <div class="thermal-line thermal-blurry">LOTE: KMB-2026-A01</div>
+                        <div class="thermal-line thermal-blurry">VENC: 15/12/2026</div>
+                    </div>
+                </div>
+                <div class="cut-guide">✂ Simula la falla real del cabezal térmico de Kimby</div>
+            </div>
+
+            <!-- ETIQUETA 3: PRODUCTO VENCIDO -->
+            <div class="label-card">
+                <span class="label-badge badge-reject">✖ Etiqueta 3: Fecha Vencida (Debe Descartar)</span>
+                <div class="kimby-pack">
+                    <div class="pack-header">EMBUTIDOS KIMBY</div>
+                    <div class="pack-sub">Salchichas Tradicionales 500g</div>
+                    <div class="thermal-box">
+                        <div class="thermal-zone-tag">ZONA DE FECHADOR TÉRMICO EN LÍNEA</div>
+                        <div class="thermal-line">LOTE: KMB-2026-A01</div>
+                        <div class="thermal-line" style="color: #b91c1c;">VENC: 10/01/2023</div>
+                    </div>
+                </div>
+                <div class="cut-guide">✂ Texto nítido pero fecha caducada (Riesgo sanitario)</div>
+            </div>
+
+            <!-- ETIQUETA 4: LOTE DISCREPANTE -->
+            <div class="label-card">
+                <span class="label-badge badge-reject">✖ Etiqueta 4: Lote Incorrecto (Debe Descartar en Modo Estricto)</span>
+                <div class="kimby-pack">
+                    <div class="pack-header">EMBUTIDOS KIMBY</div>
+                    <div class="pack-sub">Salchichas Tradicionales 500g</div>
+                    <div class="thermal-box">
+                        <div class="thermal-zone-tag">ZONA DE FECHADOR TÉRMICO EN LÍNEA</div>
+                        <div class="thermal-line">LOTE: KMB-2024-X99</div>
+                        <div class="thermal-line">VENC: 15/12/2026</div>
+                    </div>
+                </div>
+                <div class="cut-guide">✂ Lote ajeno al turno de producción actual</div>
+            </div>
+
+        </div>
+
+        <div style="margin-top: 30px; padding: 15px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; font-size: 13px; color: #92400e;">
+            <strong>💡 ¿Cómo probarlas con tu celular?</strong><br>
+            1. Deja esta página abierta en la pantalla de tu computadora.<br>
+            2. Abre la app en tu teléfono (<code>http://192.168.1.68:8000</code>).<br>
+            3. En la app, activa la cámara o pulsa "Tomar / Subir Foto" y apunta primero a la <strong>Etiqueta 1</strong> (verás cómo se aprueba en verde y suena el chime).<br>
+            4. Luego apunta a la <strong>Etiqueta 2</strong> (verás la alarma roja, el buzzer y la activación del brazo neumático). ¡Perfecto para tu video demostrativo!
+        </div>
+    </div>
+
+</body>
+</html>
