@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080, initial-scale=1.0">
+  <title>Arquitectura de Red Neuronal BLSTM + CTC - Kimby QC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 8%, #142247 0%, #0a1124 45%, #030712 100%);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f1f5f9;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 24px 32px 20px 32px;
+    }
+
+    /* Ambient Tech Grid Overlay */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.035) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header Styling */
+    header {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.22);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .badge-pill-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-pill {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 2.5px 9px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .badge-pill.purple {
+      background: rgba(192, 132, 252, 0.12);
+      color: #c084fc;
+      border-color: rgba(192, 132, 252, 0.35);
+    }
+
+    .badge-pill.green {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 27px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 25%, #38bdf8 65%, #c084fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .meta-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      padding: 6px 12px;
+      border-radius: 7px;
+      text-align: right;
+    }
+
+    .meta-box-label {
+      font-size: 9.5px;
+      color: #64748b;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+    }
+
+    .meta-box-val {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #e2e8f0;
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Main Pipeline Container */
+    .pipeline-container {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 375px 515px 495px 435px;
+      gap: 16px;
+      flex: 1;
+      height: calc(100% - 150px);
+    }
+
+    .stage-card {
+      background: rgba(15, 23, 42, 0.76);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(51, 65, 85, 0.9);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      padding: 14px 15px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.45);
+    }
+
+    .stage-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .stage-1::before { background: linear-gradient(90deg, #38bdf8, #0284c7); }
+    .stage-2::before { background: linear-gradient(90deg, #38bdf8, #c084fc); }
+    .stage-3::before { background: linear-gradient(90deg, #c084fc, #f59e0b); }
+    .stage-4::before { background: linear-gradient(90deg, #f59e0b, #10b981); }
+
+    .stage-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.55);
+    }
+
+    .stage-num-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stage-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .stage-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: #f8fafc;
+    }
+
+    .stage-tag {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .stage-1 .stage-tag { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .stage-2 .stage-tag { background: rgba(192, 132, 252, 0.15); color: #c084fc; border: 1px solid rgba(192, 132, 252, 0.3); }
+    .stage-3 .stage-tag { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .stage-4 .stage-tag { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+
+    .stage-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* Math and Callout Pills */
+    .math-pill {
+      background: rgba(30, 41, 59, 0.75);
+      border-left: 3px solid #38bdf8;
+      padding: 8px 10px;
+      border-radius: 0 6px 6px 0;
+      font-size: 10px;
+      color: #cbd5e1;
+      line-height: 1.45;
+    }
+
+    .math-pill code {
+      color: #38bdf8;
+      font-family: 'Fira Code', monospace;
+      font-weight: 600;
+    }
+
+    /* Stage 1 Styling */
+    .roi-wrapper {
+      background: #060a13;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      position: relative;
+    }
+
+    .roi-header-badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .roi-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .roi-spec {
+      font-size: 9px;
+      color: #64748b;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .thermal-label-visual {
+      background: #020617;
+      border: 1px dashed rgba(56, 189, 248, 0.4);
+      border-radius: 6px;
+      padding: 10px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .thermal-text {
+      font-family: 'Fira Code', monospace;
+      color: #38bdf8;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+    }
+
+    .scan-beam {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 115px;
+      width: 2px;
+      background: #ef4444;
+      box-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444;
+    }
+
+    .slicing-breakdown-box {
+      background: #090e1d;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .slicing-row-header {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .slices-visual-strip {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 4px;
+      height: 82px;
+      background: #020617;
+      border-radius: 6px;
+      padding: 6px;
+      border: 1px solid #1e293b;
+    }
+
+    .slice-col {
+      flex: 1;
+      height: 100%;
+      background: linear-gradient(180deg, #1e293b 0%, rgba(56, 189, 248, 0.25) 50%, #0b1329 100%);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 3px 0;
+      font-size: 8px;
+      font-family: 'Fira Code', monospace;
+      color: #94a3b8;
+    }
+
+    .slice-col.focus {
+      background: linear-gradient(180deg, #0284c7 0%, #38bdf8 60%, #e0f2fe 100%);
+      border-color: #fff;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.9);
+      color: #030712;
+      font-weight: 800;
+    }
+
+    .slice-col-dots {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .slice-dot {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(56, 189, 248, 0.7);
+    }
+
+    .slice-col.focus .slice-dot {
+      background: #030712;
+    }
+
+    .prep-tags-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .prep-tag {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #334155;
+      padding: 5px;
+      border-radius: 5px;
+      text-align: center;
+      font-size: 9px;
+      color: #cbd5e1;
+    }
+
+    .prep-tag b {
+      color: #38bdf8;
+      display: block;
+      font-size: 9.5px;
+    }
+
+    /* Stage 2 Styling */
+    .nn-architecture-svg {
+      width: 100%;
+      height: 255px;
+      background: #070c18;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+    }
+
+    .gates-horizontal-deck {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .gate-cell {
+      background: #090e1d;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 6px 4px;
+      text-align: center;
+    }
+
+    .gate-cell-name {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .gate-cell-fn {
+      font-family: 'Fira Code', monospace;
+      font-size: 9.5px;
+      font-weight: 600;
+      color: #c084fc;
+      margin-top: 2px;
+    }
+
+    /* Stage 3 Styling */
+    .softmax-matrix-wrapper {
+      background: #060a13;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 9px 10px;
+    }
+
+    .matrix-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #fbbf24;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .prob-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #020617;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+    }
+
+    .prob-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .prob-sym {
+      width: 22px;
+      font-family: 'Fira Code', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    .prob-timeline-bars {
+      display: flex;
+      flex: 1;
+      gap: 3px;
+      height: 16px;
+    }
+
+    .p-bar {
+      flex: 1;
+      height: 100%;
+      background: #111827;
+      border-radius: 2px;
+    }
+
+    .p-bar.hi-cyan {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+
+    .p-bar.hi-purple {
+      background: #c084fc;
+      box-shadow: 0 0 8px #c084fc;
+    }
+
+    .p-bar.hi-amber {
+      background: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+    }
+
+    .p-bar.hi-blank {
+      background: #334155;
+    }
+
+    .ctc-alignment-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .stream-step-tag {
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #fbbf24;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stream-raw {
+      font-family: 'Fira Code', monospace;
+      font-size: 10px;
+      color: #fef08a;
+      background: #0b1120;
+      border: 1px dashed rgba(245, 158, 11, 0.45);
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ctc-trans-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #f59e0b;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 1px 0;
+    }
+
+    .stream-collapsed {
+      font-family: 'Fira Code', monospace;
+      font-size: 10.5px;
+      color: #93c5fd;
+      background: #0f172a;
+      border: 1px solid #1e3a8a;
+      padding: 4px 6px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-around;
+      font-weight: 600;
+    }
+
+    .stream-clean {
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      font-weight: 800;
+      color: #34d399;
+      background: #022c22;
+      border: 1.5px solid #059669;
+      padding: 5px 8px;
+      border-radius: 5px;
+      text-align: center;
+      letter-spacing: 1.5px;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Stage 4 Styling */
+    .rules-card-container {
+      background: #060a13;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .rules-card-title {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .rule-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      background: #0b1120;
+      border-radius: 5px;
+      font-size: 10px;
+    }
+
+    .rule-row.green { border-left: 3px solid #10b981; }
+    .rule-row.amber { border-left: 3px solid #f59e0b; }
+
+    .rule-val {
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 9.5px;
+    }
+
+    .rule-val.ok { color: #34d399; }
+    .rule-val.fixed { color: #fbbf24; }
+
+    /* Logic Flow Middle Indicator */
+    .logic-eval-step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: 'Fira Code', monospace;
+      font-size: 9.5px;
+      color: #94a3b8;
+      background: #08101e;
+      border: 1px solid #1e293b;
+      padding: 4px;
+      border-radius: 5px;
+    }
+
+    .logic-eval-step b {
+      color: #38bdf8;
+    }
+
+    /* Actuator flow block */
+    .actuator-flow-box {
+      background: #090e1d;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .actuator-title-row {
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #38bdf8;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .verdict-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .verdict-box {
+      border-radius: 7px;
+      padding: 8px 8px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .verdict-box.approved {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1.5px solid #10b981;
+    }
+
+    .verdict-box.rejected {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1.5px solid #ef4444;
+    }
+
+    .verdict-head {
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+
+    .verdict-box.approved .verdict-head { color: #34d399; }
+    .verdict-box.rejected .verdict-head { color: #f87171; }
+
+    .verdict-sub {
+      font-size: 8.5px;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+
+    .verdict-badge {
+      font-size: 8px;
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      padding: 2px 4px;
+      border-radius: 3px;
+      margin-top: 3px;
+    }
+
+    .verdict-box.approved .verdict-badge { background: #064e3b; color: #a7f3d0; }
+    .verdict-box.rejected .verdict-badge { background: #7f1d1d; color: #fecaca; }
+
+    /* Footer styling */
+    footer {
+      position: relative;
+      z-index: 2;
+      margin-top: 14px;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 10px;
+      padding: 10px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .metric-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-right: 1px solid rgba(51, 65, 85, 0.6);
+      padding-right: 12px;
+    }
+
+    .metric-card:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .metric-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: 'Fira Code', monospace;
+    }
+
+    .metric-data {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+    }
+
+    .metric-value {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: #f8fafc;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .metric-value span {
+      font-size: 10.5px;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Section -->
+  <header>
+    <div class="header-left">
+      <div class="badge-pill-row">
+        <span class="badge-pill">Inspección de Calidad Kimby QC</span>
+        <span class="badge-pill purple">Tesseract.js v5 LSTM Core</span>
+        <span class="badge-pill green">Inferencia Local Edge (Wasm SIMD)</span>
+      </div>
+      <h1>ARQUITECTURA DE LA RED NEURONAL OCR: BLSTM + CTC</h1>
+      <p class="subtitle">Alineación Temporal Continua y Decodificación de Fechadores Térmicos Dot-Matrix sin Segmentación Previa</p>
+    </div>
+    <div class="header-right">
+      <div class="meta-box">
+        <div class="meta-box-label">Algoritmo de Pérdida / Decodificación</div>
+        <div class="meta-box-val">Alex Graves CTC (2006)</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-box-label">Topología de Red</div>
+        <div class="meta-box-val">BLSTM (2x 128 Celdas Recurrentes)</div>
+      </div>
+      <div class="meta-box">
+        <div class="meta-box-label">Rendimiento Edge</div>
+        <div class="meta-box-val">&lt; 120 ms / Empaque (Web Worker)</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 4-Stage Main Grid -->
+  <main class="pipeline-container">
+
+    <!-- ETAPA 1 -->
+    <section class="stage-card stage-1">
+      <div class="stage-header">
+        <div class="stage-num-title">
+          <div class="stage-num">01</div>
+          <div class="stage-title">ROI & MUESTREO TEMPORAL</div>
+        </div>
+        <span class="stage-tag">2D &rarr; SECUENCIA 1D</span>
+      </div>
+
+      <div class="stage-content">
+        <!-- ROI Preview -->
+        <div class="roi-wrapper">
+          <div class="roi-header-badge">
+            <span class="roi-title">1. Región de Interés (Sensor Óptico)</span>
+            <span class="roi-spec">ROI 480 &times; 160 px</span>
+          </div>
+          <div class="thermal-label-visual">
+            <div class="thermal-text">
+              LOTE: KMB-2026-A01<br>
+              VENC: 15/12/2026
+            </div>
+            <div class="scan-beam"></div>
+          </div>
+        </div>
+
+        <!-- Preprocessing indicators -->
+        <div class="prep-tags-row">
+          <div class="prep-tag">
+            <b>P2 - P98</b> Normaliz. Percentil
+          </div>
+          <div class="prep-tag">
+            <b>Otsu</b> Umbral Adaptativo
+          </div>
+          <div class="prep-tag">
+            <b>0&deg; / 90&deg; / 270&deg;</b> Auto-Rotación
+          </div>
+        </div>
+
+        <!-- Vertical Slicing Strip -->
+        <div class="slicing-breakdown-box">
+          <div class="slicing-row-header">
+            <span>2. Rebanado Vertical en Franjas Temporales</span>
+            <span style="color: #38bdf8; font-family: 'Fira Code', monospace;">x_t &isin; &reals;^{D}</span>
+          </div>
+
+          <div class="slices-visual-strip">
+            <div class="slice-col">
+              <span>x₁</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>L</span>
+            </div>
+            <div class="slice-col">
+              <span>x₂</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>O</span>
+            </div>
+            <div class="slice-col">
+              <span>x₃</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>T</span>
+            </div>
+            <div class="slice-col focus">
+              <span>x_t</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>K</span>
+            </div>
+            <div class="slice-col focus">
+              <span>x_{t+1}</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>M</span>
+            </div>
+            <div class="slice-col focus">
+              <span>x_{t+2}</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>B</span>
+            </div>
+            <div class="slice-col">
+              <span>...</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div></div>
+              <span>-</span>
+            </div>
+            <div class="slice-col">
+              <span>x_T</span>
+              <div class="slice-col-dots"><div class="slice-dot"></div><div class="slice-dot"></div></div>
+              <span>6</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanatory Pill -->
+        <div class="math-pill">
+          <strong>Propiedad Clave:</strong> Convierte la imagen en secuencia temporal <code>X = (x₁, x₂, ..., x_T)</code>. Elimina el corte de letras individuales, resolviendo el problema de puntos desconectados en fuentes de matriz térmica.
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 2 -->
+    <section class="stage-card stage-2">
+      <div class="stage-header">
+        <div class="stage-num-title">
+          <div class="stage-num">02</div>
+          <div class="stage-title">RECURRENCIA BLSTM</div>
+        </div>
+        <span class="stage-tag">BIDIRECCIONAL 2-WAY</span>
+      </div>
+
+      <div class="stage-content">
+        <!-- SVG Architecture Graph -->
+        <svg class="nn-architecture-svg" viewBox="0 0 490 250" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Grid Lines -->
+          <line x1="30" y1="205" x2="460" y2="205" stroke="#1e293b" stroke-dasharray="4 4" />
+          <line x1="30" y1="130" x2="460" y2="130" stroke="#1e293b" stroke-dasharray="4 4" />
+          <line x1="30" y1="65" x2="460" y2="65" stroke="#1e293b" stroke-dasharray="4 4" />
+
+          <!-- Input Vector Nodes (Bottom) -->
+          <!-- x_{t-1} -->
+          <rect x="55" y="190" width="75" height="30" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+          <text x="92" y="210" fill="#94a3b8" font-family="'Fira Code', monospace" font-size="11" font-weight="700" text-anchor="middle">x_{t-1}</text>
+
+          <!-- x_t -->
+          <rect x="205" y="190" width="80" height="30" rx="6" fill="#0369a1" stroke="#38bdf8" stroke-width="2"/>
+          <text x="245" y="210" fill="#f0f9ff" font-family="'Fira Code', monospace" font-size="12" font-weight="800" text-anchor="middle">x_t</text>
+
+          <!-- x_{t+1} -->
+          <rect x="360" y="190" width="75" height="30" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1.5"/>
+          <text x="397" y="210" fill="#94a3b8" font-family="'Fira Code', monospace" font-size="11" font-weight="700" text-anchor="middle">x_{t+1}</text>
+
+          <!-- Connections: Input -> Forward LSTM -->
+          <path d="M 92 190 L 92 160" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2 2"/>
+          <path d="M 245 190 L 245 160" stroke="#38bdf8" stroke-width="2"/>
+          <path d="M 397 190 L 397 160" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="2 2"/>
+
+          <!-- Connections: Input -> Backward LSTM -->
+          <path d="M 92 190 C 92 165, 80 115, 80 95" stroke="#c084fc" stroke-width="1.2" stroke-dasharray="2 2"/>
+          <path d="M 245 190 C 245 165, 235 115, 235 95" stroke="#c084fc" stroke-width="1.5"/>
+          <path d="M 397 190 C 397 165, 385 115, 385 95" stroke="#c084fc" stroke-width="1.2" stroke-dasharray="2 2"/>
+
+          <!-- Forward LSTM Layer (Cyan) y=130 -->
+          <rect x="55" y="130" width="75" height="30" rx="6" fill="#082f49" stroke="#38bdf8" stroke-width="1.5"/>
+          <text x="92" y="149" fill="#bae6fd" font-family="'Fira Code', monospace" font-size="10" font-weight="700" text-anchor="middle">h_fwd[t-1]</text>
+
+          <rect x="205" y="130" width="80" height="30" rx="6" fill="#0284c7" stroke="#38bdf8" stroke-width="2.5" filter="drop-shadow(0 0 8px rgba(56,189,248,0.5))"/>
+          <text x="245" y="149" fill="#ffffff" font-family="'Fira Code', monospace" font-size="11" font-weight="800" text-anchor="middle">h_fwd[t]</text>
+
+          <rect x="360" y="130" width="75" height="30" rx="6" fill="#082f49" stroke="#38bdf8" stroke-width="1.5"/>
+          <text x="397" y="149" fill="#bae6fd" font-family="'Fira Code', monospace" font-size="10" font-weight="700" text-anchor="middle">h_fwd[t+1]</text>
+
+          <!-- Forward Recurrent Arrows (Left to Right) -->
+          <line x1="130" y1="145" x2="200" y2="145" stroke="#38bdf8" stroke-width="2"/>
+          <polygon points="202,145 194,141 194,149" fill="#38bdf8" />
+          <line x1="285" y1="145" x2="355" y2="145" stroke="#38bdf8" stroke-width="2"/>
+          <polygon points="357,145 349,141 349,149" fill="#38bdf8" />
+          <text x="165" y="139" fill="#38bdf8" font-size="8" font-weight="700">Forward &rarr;</text>
+          <text x="320" y="139" fill="#38bdf8" font-size="8" font-weight="700">Forward &rarr;</text>
+
+          <!-- Backward LSTM Layer (Purple) y=65 -->
+          <rect x="55" y="65" width="75" height="30" rx="6" fill="#3b0764" stroke="#c084fc" stroke-width="1.5"/>
+          <text x="92" y="84" fill="#f5d0fe" font-family="'Fira Code', monospace" font-size="10" font-weight="700" text-anchor="middle">h_bwd[t-1]</text>
+
+          <rect x="205" y="65" width="80" height="30" rx="6" fill="#7e22ce" stroke="#c084fc" stroke-width="2.5" filter="drop-shadow(0 0 8px rgba(192,132,252,0.5))"/>
+          <text x="245" y="84" fill="#ffffff" font-family="'Fira Code', monospace" font-size="11" font-weight="800" text-anchor="middle">h_bwd[t]</text>
+
+          <rect x="360" y="65" width="75" height="30" rx="6" fill="#3b0764" stroke="#c084fc" stroke-width="1.5"/>
+          <text x="397" y="84" fill="#f5d0fe" font-family="'Fira Code', monospace" font-size="10" font-weight="700" text-anchor="middle">h_bwd[t+1]</text>
+
+          <!-- Backward Recurrent Arrows (Right to Left) -->
+          <line x1="205" y1="80" x2="135" y2="80" stroke="#c084fc" stroke-width="2"/>
+          <polygon points="133,80 141,76 141,84" fill="#c084fc" />
+          <line x1="360" y1="80" x2="290" y2="80" stroke="#c084fc" stroke-width="2"/>
+          <polygon points="288,80 296,76 296,84" fill="#c084fc" />
+          <text x="165" y="74" fill="#c084fc" font-size="8" font-weight="700">&larr; Backward</text>
+          <text x="320" y="74" fill="#c084fc" font-size="8" font-weight="700">&larr; Backward</text>
+
+          <!-- Concat / Dense Output Node y=10 -->
+          <rect x="155" y="8" width="180" height="28" rx="6" fill="#0f172a" stroke="#e2e8f0" stroke-width="1.5"/>
+          <text x="245" y="26" fill="#f8fafc" font-family="'Fira Code', monospace" font-size="10.5" font-weight="800" text-anchor="middle">y_t = [ h_fwd[t] || h_bwd[t] ]</text>
+
+          <!-- Lines from Forward and Backward to Concat Node -->
+          <path d="M 235 65 L 235 36" stroke="#c084fc" stroke-width="2"/>
+          <path d="M 255 130 C 270 100, 265 55, 255 36" stroke="#38bdf8" stroke-width="2"/>
+        </svg>
+
+        <!-- LSTM Gates Breakdown -->
+        <div>
+          <div style="font-size: 9.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">
+            Compuertas Internas LSTM (Memoria Prolongada):
+          </div>
+          <div class="gates-horizontal-deck">
+            <div class="gate-cell">
+              <div class="gate-cell-name">Olvido (f_t)</div>
+              <div class="gate-cell-fn">&sigma;(W_f &middot; x + b)</div>
+            </div>
+            <div class="gate-cell">
+              <div class="gate-cell-name">Entrada (i_t)</div>
+              <div class="gate-cell-fn">&sigma;(W_i &middot; x + b)</div>
+            </div>
+            <div class="gate-cell">
+              <div class="gate-cell-name">Candidato (C̃_t)</div>
+              <div class="gate-cell-fn">tanh(W_c &middot; x)</div>
+            </div>
+            <div class="gate-cell">
+              <div class="gate-cell-name">Salida (o_t)</div>
+              <div class="gate-cell-fn">&sigma;(W_o &middot; x + b)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanatory Pill -->
+        <div class="math-pill" style="border-color: #c084fc;">
+          <strong>Poder de Disambiguación:</strong> Al analizar simultáneamente el contexto pasado y futuro, la red resuelve ambigüedades comunes de inyección de tinta térmica (como distinguir <code>8</code> de <code>B</code> o <code>0</code> de <code>O</code>).
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 3 -->
+    <section class="stage-card stage-3">
+      <div class="stage-header">
+        <div class="stage-num-title">
+          <div class="stage-num">03</div>
+          <div class="stage-title">SOFTMAX & COLAPSO CTC</div>
+        </div>
+        <span class="stage-tag">ALINEACIÓN TEMPORAL</span>
+      </div>
+
+      <div class="stage-content">
+        <!-- Softmax Heatmap -->
+        <div class="softmax-matrix-wrapper">
+          <div class="matrix-title">
+            <span>1. Probabilidad de Emisión P(c | x_t)</span>
+            <span style="font-family: 'Fira Code', monospace; color: #fbbf24;">&Sigma; &cup; {&epsilon;}</span>
+          </div>
+
+          <div class="prob-grid">
+            <div class="prob-row">
+              <span class="prob-sym">K</span>
+              <div class="prob-timeline-bars">
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar hi-cyan"></div>
+                <div class="p-bar hi-cyan"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+              </div>
+            </div>
+
+            <div class="prob-row">
+              <span class="prob-sym">M</span>
+              <div class="prob-timeline-bars">
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar hi-purple"></div>
+                <div class="p-bar hi-purple"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+              </div>
+            </div>
+
+            <div class="prob-row">
+              <span class="prob-sym">B</span>
+              <div class="prob-timeline-bars">
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar hi-amber"></div>
+                <div class="p-bar hi-amber"></div>
+                <div class="p-bar"></div>
+              </div>
+            </div>
+
+            <div class="prob-row">
+              <span class="prob-sym" style="color: #64748b;">&epsilon;</span>
+              <div class="prob-timeline-bars">
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar hi-blank"></div>
+                <div class="p-bar"></div>
+                <div class="p-bar hi-blank"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTC Collapse Operation: 2 Clear Steps -->
+        <div class="ctc-alignment-box">
+          <div class="stream-step-tag">Paso 1: Alineación Cruda con Repeticiones y Blank (&epsilon;):</div>
+          <div class="stream-raw">
+            <span>&epsilon;</span><span>K</span><span>K</span><span>&epsilon;</span><span>M</span><span>M</span><span>&epsilon;</span><span>B</span><span>B</span><span>-</span><span>2</span><span>0</span><span>2</span><span>6</span>
+          </div>
+
+          <div class="ctc-trans-label">
+            <span>&darr;</span> Operador de Colapso B(&pi;) [Alex Graves 2006] <span>&darr;</span>
+          </div>
+
+          <div class="stream-step-tag">Paso 2: Colapso de Repeticiones y Supresión de &epsilon;:</div>
+          <div class="stream-collapsed">
+            <span>KK &rarr; K</span>
+            <span>MM &rarr; M</span>
+            <span>BB &rarr; B</span>
+            <span>Quitar &epsilon;</span>
+          </div>
+
+          <div class="stream-clean">
+            LOTE: KMB-2026-A01
+          </div>
+        </div>
+
+        <!-- Explanatory Pill -->
+        <div class="math-pill" style="border-color: #f59e0b;">
+          <strong>Pérdida y Decodificación CTC:</strong> Maximiza la probabilidad total sumando todos los caminos de alineación posibles: <code>P(l | x) = &sum; P(&pi; | x)</code> para todo <code>&pi; &isin; B⁻¹(l)</code>, haciendo innecesaria la anotación previa carácter por carácter.
+        </div>
+      </div>
+    </section>
+
+    <!-- ETAPA 4 -->
+    <section class="stage-card stage-4">
+      <div class="stage-header">
+        <div class="stage-num-title">
+          <div class="stage-num">04</div>
+          <div class="stage-title">VALIDACIÓN & ACTUACIÓN</div>
+        </div>
+        <span class="stage-tag">CONTROL INDUSTRIAL</span>
+      </div>
+
+      <div class="stage-content">
+        <!-- Verification Rules -->
+        <div class="rules-card-container">
+          <div class="rules-card-title">Motor de Reglas de Calidad (Edge Web Worker):</div>
+
+          <div class="rule-row green">
+            <span>Prefijo Lote: <code>KMB</code></span>
+            <span class="rule-val ok">&check; DETECTADO</span>
+          </div>
+
+          <div class="rule-row amber">
+            <span>Falla Térmica: <code>KM8 &rarr; KMB</code></span>
+            <span class="rule-val fixed">&check; RECUPERADO</span>
+          </div>
+
+          <div class="rule-row green">
+            <span>Vigencia: <code>15/12/2026 &ge; Hoy</code></span>
+            <span class="rule-val ok">&check; CONFORME</span>
+          </div>
+
+          <div class="rule-row green">
+            <span>Umbral Confianza: <code>&ge; 50%</code></span>
+            <span class="rule-val ok">&check; 92.4%</span>
+          </div>
+        </div>
+
+        <!-- Intermediate Logic Step -->
+        <div class="logic-eval-step">
+          <span>Evaluador Lógico: <b>AND</b> (Lote &isin; Regex) &and; (Exp &ge; Hoy)</span>
+        </div>
+
+        <!-- Binary Actuation Decision -->
+        <div class="actuator-flow-box">
+          <div class="actuator-title-row">Decisión Booleana & Disparo de Actuador:</div>
+          <div class="verdict-actions-grid">
+            <!-- Approved -->
+            <div class="verdict-box approved">
+              <div class="verdict-head">&check; APROBADO</div>
+              <div class="verdict-sub">Continúa por banda hacia empaque final.</div>
+              <div class="verdict-badge">GPIO PIN 22: LOW</div>
+            </div>
+
+            <!-- Rejected -->
+            <div class="verdict-box rejected">
+              <div class="verdict-head">&cross; RECHAZADO</div>
+              <div class="verdict-sub">Pistón neumático (120 psi, &lt; 40 ms) desvía empaque.</div>
+              <div class="verdict-badge">GPIO PIN 23: HIGH</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explanatory Pill -->
+        <div class="math-pill" style="border-color: #10b981;">
+          <strong>Operación Edge Autónoma:</strong> La inferencia corre en el dispositivo local con WebAssembly SIMD. No requiere conexión a servidores en la nube, garantizando cero paradas por fallas de Internet en planta.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Technical Summary Footer -->
+  <footer>
+    <div class="metric-card">
+      <div class="metric-icon" style="color: #38bdf8;">&Delta;t</div>
+      <div class="metric-data">
+        <div class="metric-label">Tiempo Total Inferencia</div>
+        <div class="metric-value">95 - 120 <span>ms / empaque</span></div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon" style="color: #c084fc;">RAM</div>
+      <div class="metric-data">
+        <div class="metric-label">Huella de Memoria</div>
+        <div class="metric-value">~18.4 <span>MB (Wasm SIMD)</span></div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon" style="color: #f59e0b;">BLSTM</div>
+      <div class="metric-data">
+        <div class="metric-label">Topología de Memoria</div>
+        <div class="metric-value">Bidireccional <span>Forward + Back</span></div>
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-icon" style="color: #10b981;">PLC</div>
+      <div class="metric-data">
+        <div class="metric-label">Disparo de Rechazo</div>
+        <div class="metric-value">&lt; 40 <span>ms (Actuador 120 psi)</span></div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
